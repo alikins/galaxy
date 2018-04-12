@@ -2,7 +2,8 @@ GALAXY_RELEASE_IMAGE ?= galaxy
 GALAXY_RELEASE_TAG ?= latest
 
 VENV_BIN=/var/lib/galaxy/venv/bin
-DOCKER_COMPOSE=docker-compose -f ./scripts/compose-dev.yml -p galaxy
+COMPOSE_SCRIPT ?= ./scripts/compose-dev.yml
+DOCKER_COMPOSE=docker-compose -f $(COMPOSE_SCRIPT) -p galaxy
 
 .PHONY: help
 help:
