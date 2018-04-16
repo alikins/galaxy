@@ -31,8 +31,6 @@ import yaml
 
 from abc import ABCMeta, abstractmethod
 
-from ansible.release import __version__
-from ansible.utils.path import unfrackpath
 from ansible.utils.vars import load_extra_vars, load_options_vars
 from ansible.vars.manager import VariableManager
 from ansible.parsing.vault import PromptVaultSecret, get_file_vault_secret
@@ -43,6 +41,8 @@ import galaxy_client
 from galaxy_client import exceptions
 from galaxy_client.compat import six
 from galaxy_client.config import runtime
+from galaxy_client.release import __version__
+from galaxy_client.utils.path import unfrackpath
 from galaxy_client.utils.text import to_bytes, to_text
 
 try:
