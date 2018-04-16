@@ -31,14 +31,15 @@ import time
 from struct import unpack, pack
 from termios import TIOCGWINSZ
 
-from ansible import constants as C
+# from ansible import constants as C
 # from ansible.errors import AnsibleError
 # from ansible.module_utils._text import to_bytes, to_text
 
+from galaxy_client.utils.color import stringc
+from galaxy_client.config import defaults
+from galaxy_client.config import runtime
 from galaxy_client import exceptions
 from galaxy_client.utils.text import to_bytes, to_text
-
-from ansible.utils.color import stringc
 
 
 try:
@@ -59,15 +60,15 @@ class FilterBlackList(logging.Filter):
 
 logger = None
 # TODO: make this a logging callback instead
-if C.DEFAULT_LOG_PATH:
-    path = C.DEFAULT_LOG_PATH
+if defaults.DEFAULT_LOG_PATH:
+    path = defaults.DEFAULT_LOG_PATH
     if (os.path.exists(path) and os.access(path, os.W_OK)) or os.access(os.path.dirname(path), os.W_OK):
         logging.basicConfig(filename=path, level=logging.DEBUG, format='%(asctime)s %(name)s %(message)s')
         mypid = str(os.getpid())
         user = getpass.getuser()
         logger = logging.getLogger("p=%s u=%s | " % (mypid, user))
         for handler in logging.root.handlers:
-            handler.addFilter(FilterBlackList(C.DEFAULT_LOG_FILTER))
+            handler.addFilter(FilterBlackList(defaults.DEFAULT_LOG_FILTER))
     else:
         print("[WARNING]: log file at %s is not writeable and we cannot create it, aborting\n" % path, file=sys.stderr)
 
@@ -136,7 +137,7 @@ class Display:
                 # characters that are invalid in the user's locale
                 msg2 = to_text(msg2, self._output_encoding(stderr=stderr))
 
-            if color == C.COLOR_ERROR:
+            if color == runtime.COLOR_ERROR:
                 logger.error(msg2)
             else:
                 logger.info(msg2)
@@ -160,20 +161,20 @@ class Display:
         return self.verbose(msg, host=host, caplevel=5)
 
     def debug(self, msg):
-        if C.DEFAULT_DEBUG:
-            self.display("%6d %0.5f: %s" % (os.getpid(), time.time(), msg), color=C.COLOR_DEBUG)
+        if defaults.DEFAULT_DEBUG:
+            self.display("%6d %0.5f: %s" % (os.getpid(), time.time(), msg), color=runtime.COLOR_DEBUG)
 
     def verbose(self, msg, host=None, caplevel=2):
         if self.verbosity > caplevel:
             if host is None:
-                self.display(msg, color=C.COLOR_VERBOSE)
+                self.display(msg, color=runtime.COLOR_VERBOSE)
             else:
-                self.display("<%s> %s" % (host, msg), color=C.COLOR_VERBOSE, screen_only=True)
+                self.display("<%s> %s" % (host, msg), color=runtime.COLOR_VERBOSE, screen_only=True)
 
     def deprecated(self, msg, version=None, removed=False):
         ''' used to print out a deprecation message.'''
 
-        if not removed and not C.DEPRECATION_WARNINGS:
+        if not removed and not runtime.DEPRECATION_WARNINGS:
             return
 
         if not removed:
@@ -189,7 +190,7 @@ class Display:
         new_msg = "\n".join(wrapped) + "\n"
 
         if new_msg not in self._deprecations:
-            self.display(new_msg.strip(), color=C.COLOR_DEPRECATE, stderr=True)
+            self.display(new_msg.strip(), color=runtime.COLOR_DEPRECATE, stderr=True)
             self._deprecations[new_msg] = 1
 
     def warning(self, msg, formatted=False):
@@ -202,11 +203,11 @@ class Display:
             new_msg = "\n[WARNING]: \n%s" % msg
 
         if new_msg not in self._warns:
-            self.display(new_msg, color=C.COLOR_WARN, stderr=True)
+            self.display(new_msg, color=runtime.COLOR_WARN, stderr=True)
             self._warns[new_msg] = 1
 
     def system_warning(self, msg):
-        if C.SYSTEM_WARNINGS:
+        if runtime.SYSTEM_WARNINGS:
             self.warning(msg)
 
     def banner(self, msg, color=None, cows=True):
@@ -228,7 +229,7 @@ class Display:
         else:
             new_msg = u"ERROR! %s" % msg
         if new_msg not in self._errors:
-            self.display(new_msg, color=C.COLOR_ERROR, stderr=True)
+            self.display(new_msg, color=runtime.COLOR_ERROR, stderr=True)
             self._errors[new_msg] = 1
 
     @staticmethod
