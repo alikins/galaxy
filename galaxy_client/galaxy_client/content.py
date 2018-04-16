@@ -34,14 +34,14 @@ import shutil
 from distutils.version import LooseVersion
 from shutil import rmtree
 
-from ansible.errors import AnsibleError
-from ansible.module_utils.urls import open_url
-from ansible.module_utils.six import string_types
-from ansible.playbook.role.requirement import RoleRequirement
-from ansible.galaxy.api import GalaxyAPI
-from ansible.galaxy import Galaxy
 
+from galaxy_client.api import GalaxyAPI
 from galaxy_client.config import defaults
+from galaxy_client import exceptions
+from galaxy_client.compat import six
+
+from ansible.playbook.role.requirement import RoleRequirement
+from ansible.module_utils.urls import open_url
 
 try:
     from __main__ import display
@@ -125,7 +125,7 @@ class GalaxyContent(object):
         self._set_type(type)
 
         if self.type not in C.CONTENT_TYPES and self.type != "all":
-            raise AnsibleError("%s is not a valid Galaxy Content Type" % self.type)
+            raise exceptions.GalaxyClientError("%s is not a valid Galaxy Content Type" % self.type)
 
         # Set original path, needed to determine what action to take in order to
         # maintain backwards compat with legacy roles
@@ -389,14 +389,14 @@ class GalaxyContent(object):
                             # FIXME - Probably a better way to handle this
                             display.warning(" ".join(message))
                         else:
-                            raise AnsibleError(" ".join(message))
+                            raise exceptions.GalaxyClientError(" ".join(message))
                     else:
                         message = "the specified role %s appears to already exist. Use --force to replace it." % self.name
                         if self._install_all_content:
                             # FIXME - Probably a better way to handle this
                             display.warning(message)
                         else:
-                            raise AnsibleError(message)
+                            raise exceptions.GalaxyClientError(message)
 
                 # Alright, *now* actually write the file
                 tar_file.extract(member, self.path)
@@ -408,7 +408,7 @@ class GalaxyContent(object):
 
         if self.type != "role":
             if not plugin_found:
-                raise AnsibleError("Required subdirectory not found in Galaxy Content archive for %s" % self.name)
+                raise exceptions.GalaxyClientError("Required subdirectory not found in Galaxy Content archive for %s" % self.name)
 
     def remove(self):
         """
@@ -427,7 +427,7 @@ class GalaxyContent(object):
                     pass
 
         else:
-            raise AnsibleError("Removing Galaxy Content not yet implemented")
+            raise exceptions.GalaxyClientError("Removing Galaxy Content not yet implemented")
 
         return False
 
@@ -480,7 +480,7 @@ class GalaxyContent(object):
                 # FIXME - Need to update our API calls once Galaxy has them implemented
                 content_data = api.lookup_role_by_name(self.src)
                 if not content_data:
-                    raise AnsibleError("- sorry, %s was not found on %s." % (self.src, api.api_server))
+                    raise exceptions.GalaxyClientError("- sorry, %s was not found on %s." % (self.src, api.api_server))
 
                 if content_data.get('role_type') == 'APP':
                     # Container Role
@@ -499,7 +499,7 @@ class GalaxyContent(object):
                         try:
                             loose_versions.sort()
                         except TypeError:
-                            raise AnsibleError(
+                            raise exceptions.GalaxyClientError(
                                 'Unable to compare content versions (%s) to determine the most recent version due to incompatible version formats. '
                                 'Please contact the content author to resolve versioning conflicts, or specify an explicit content version to '
                                 'install.' % ', '.join([v.vstring for v in loose_versions])
@@ -511,21 +511,21 @@ class GalaxyContent(object):
                         self.version = 'master'
                 elif self.version != 'master':
                     if role_versions and str(self.version) not in [a.get('name', None) for a in role_versions]:
-                        raise AnsibleError("- the specified version (%s) of %s was not found in the list of available versions (%s)." % (self.version,
+                        raise exceptions.GalaxyClientError("- the specified version (%s) of %s was not found in the list of available versions (%s)." % (self.version,
                                                                                                                                          self.name,
                                                                                                                                          role_versions))
 
                 tmp_file = self.fetch(content_data)
 
         else:
-            raise AnsibleError("No valid content data found")
+            raise exceptions.GalaxyClientError("No valid content data found")
 
         if tmp_file:
 
             display.debug("installing from %s" % tmp_file)
 
             if not tarfile.is_tarfile(tmp_file):
-                raise AnsibleError("the file downloaded was not a tar.gz")
+                raise exceptions.GalaxyClientError("the file downloaded was not a tar.gz")
             else:
                 if tmp_file.endswith('.gz'):
                     content_tar_file = tarfile.open(tmp_file, "r:gz")
@@ -594,10 +594,10 @@ class GalaxyContent(object):
 
                     if not parent_dir_found:
                         if self.type in C.CONTENT_PLUGIN_TYPES:
-                            raise AnsibleError("No content metadata provided, nor content directories found for type: %s" % self.type)
+                            raise exceptions.GalaxyClientError("No content metadata provided, nor content directories found for type: %s" % self.type)
 
                 if not meta_file and not galaxy_file and self.type == "role":
-                    raise AnsibleError("this role does not appear to have a meta/main.yml file or ansible-galaxy.yml.")
+                    raise exceptions.GalaxyClientError("this role does not appear to have a meta/main.yml file or ansible-galaxy.yml.")
                 else:
                     try:
                         if galaxy_file:
@@ -608,7 +608,7 @@ class GalaxyContent(object):
                         #else:
                         # FIXME - Need to handle the scenario where we "walk the dirs" and place things where they should be
                     except:
-                        raise AnsibleError("this role does not appear to have a valid meta/main.yml or ansible-galaxy.yml file.")
+                        raise exceptions.GalaxyClientError("this role does not appear to have a valid meta/main.yml or ansible-galaxy.yml file.")
 
                 # we strip off any higher-level directories for all of the files contained within
                 # the tar file here. The default is 'github_repo-target'. Gerrit instances, on the other
@@ -625,13 +625,13 @@ class GalaxyContent(object):
                             # This is an old-style role
                             if os.path.exists(self.path):
                                 if not os.path.isdir(self.path):
-                                    raise AnsibleError("the specified roles path exists and is not a directory.")
+                                    raise exceptions.GalaxyClientError("the specified roles path exists and is not a directory.")
                                 elif not getattr(self.options, "force", False):
-                                    raise AnsibleError("the specified role %s appears to already exist. Use --force to replace it." % self.name)
+                                    raise exceptions.GalaxyClientError("the specified role %s appears to already exist. Use --force to replace it." % self.name)
                                 else:
                                     # using --force, remove the old path
                                     if not self.remove():
-                                        raise AnsibleError("%s doesn't appear to contain a role.\n  please remove this directory manually if you really "
+                                        raise exceptions.GalaxyClientError("%s doesn't appear to contain a role.\n  please remove this directory manually if you really "
                                                         "want to put the role here." % self.path)
                             else:
                                 os.makedirs(self.path)
@@ -710,7 +710,7 @@ class GalaxyContent(object):
                                         if 'dependencies' in module:
                                             for dep in module['dependencies']:
                                                 if 'src' not in dep:
-                                                    raise AnsibleError("ansible-galaxy.yml dependencies must provide a src")
+                                                    raise exceptions.GalaxyClientError("ansible-galaxy.yml dependencies must provide a src")
 
 
                                                 dep_content_info = GalaxyContent.yaml_parse(dep['src'])
@@ -724,7 +724,7 @@ class GalaxyContent(object):
                                                     dep_content = GalaxyContent(self.galaxy, **dep_content_info)
                                                     try:
                                                         installed = dep_content.install()
-                                                    except AnsibleError as e:
+                                                    except exceptions.GalaxyClientError as e:
                                                         display.warning("- dependency %s was NOT installed successfully: %s " % (dep_content.name, str(e)))
                                                         continue
                                                 else:
@@ -747,7 +747,7 @@ class GalaxyContent(object):
 
                                 else:
                                     # FIXME - add more types other than module here
-                                    raise AnsibleError("ansible-galaxy.yml install not yet supported for type %s" % self.type)
+                                    raise exceptions.GalaxyClientError("ansible-galaxy.yml install not yet supported for type %s" % self.type)
 
                         elif not meta_file and not galaxy_file:
                             # No meta/main.yml found so it's not a legacy role
@@ -793,7 +793,7 @@ class GalaxyContent(object):
                                         self._write_archived_files(content_tar_file, archive_parent_dir)
                                         installed = True
                                 else:
-                                    raise AnsibleError("This Galaxy Content does not contain valid content subdirectories, expected any of: %s " % C.CONTENT_TYPES)
+                                    raise exceptions.GalaxyClientError("This Galaxy Content does not contain valid content subdirectories, expected any of: %s " % C.CONTENT_TYPES)
 
                     except OSError as e:
                         error = True
@@ -803,7 +803,7 @@ class GalaxyContent(object):
                                 self.path = self.paths[current + 1]
                                 error = False
                         if error:
-                            raise AnsibleError("Could not update files in %s: %s" % (self.path, str(e)))
+                            raise exceptions.GalaxyClientError("Could not update files in %s: %s" % (self.path, str(e)))
 
                 # return the parsed yaml metadata
                 display.display("- %s was installed successfully" % str(self))
@@ -837,17 +837,17 @@ class GalaxyContent(object):
         Implementation originally adopted from the Ansible RoleRequirement
         """
         if scm not in ['hg', 'git']:
-            raise AnsibleError("- scm %s is not currently supported" % scm)
+            raise exceptions.GalaxyClientError("- scm %s is not currently supported" % scm)
         tempdir = tempfile.mkdtemp()
         clone_cmd = [scm, 'clone', src, name]
         with open('/dev/null', 'w') as devnull:
             try:
                 popen = subprocess.Popen(clone_cmd, cwd=tempdir, stdout=devnull, stderr=devnull)
             except Exception as e:
-                raise AnsibleError("error executing: %s" % " ".join(clone_cmd))
+                raise exceptions.GalaxyClientError("error executing: %s" % " ".join(clone_cmd))
             rc = popen.wait()
         if rc != 0:
-            raise AnsibleError("- command %s failed in directory %s (rc=%s)" % (' '.join(clone_cmd), tempdir, rc))
+            raise exceptions.GalaxyClientError("- command %s failed in directory %s (rc=%s)" % (' '.join(clone_cmd), tempdir, rc))
 
         if scm == 'git' and version:
             checkout_cmd = [scm, 'checkout', version]
@@ -855,10 +855,10 @@ class GalaxyContent(object):
                 try:
                     popen = subprocess.Popen(checkout_cmd, cwd=os.path.join(tempdir, name), stdout=devnull, stderr=devnull)
                 except (IOError, OSError):
-                    raise AnsibleError("error executing: %s" % " ".join(checkout_cmd))
+                    raise exceptions.GalaxyClientError("error executing: %s" % " ".join(checkout_cmd))
                 rc = popen.wait()
             if rc != 0:
-                raise AnsibleError("- command %s failed in directory %s (rc=%s)" % (' '.join(checkout_cmd), tempdir, rc))
+                raise exceptions.GalaxyClientError("- command %s failed in directory %s (rc=%s)" % (' '.join(checkout_cmd), tempdir, rc))
 
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tar')
         if scm == 'hg':
@@ -878,7 +878,7 @@ class GalaxyContent(object):
                                      stderr=devnull, stdout=devnull)
             rc = popen.wait()
         if rc != 0:
-            raise AnsibleError("- command %s failed in directory %s (rc=%s)" % (' '.join(archive_cmd), tempdir, rc))
+            raise exceptions.GalaxyClientError("- command %s failed in directory %s (rc=%s)" % (' '.join(archive_cmd), tempdir, rc))
 
         shutil.rmtree(tempdir, ignore_errors=True)
         return temp_file.name
@@ -886,7 +886,7 @@ class GalaxyContent(object):
     @staticmethod
     def yaml_parse(content):
 
-        if isinstance(content, string_types):
+        if isinstance(content, six.string_types):
             name = None
             scm = None
             src = None
@@ -897,7 +897,7 @@ class GalaxyContent(object):
                 elif content.count(',') == 2:
                     (src, version, name) = content.strip().split(',', 2)
                 else:
-                    raise AnsibleError("Invalid content line (%s). Proper format is 'content_name[,version[,name]]'" % content)
+                    raise exceptions.GalaxyClientError("Invalid content line (%s). Proper format is 'content_name[,version[,name]]'" % content)
             else:
                 src = content
 

@@ -24,13 +24,15 @@ __metaclass__ = type
 
 import json
 
-import ansible.constants as C
-from ansible.errors import AnsibleError
-from ansible.galaxy.token import GalaxyToken
-from ansible.module_utils.six import string_types
-from ansible.module_utils.six.moves.urllib.error import HTTPError
-from ansible.module_utils.six.moves.urllib.parse import quote as urlquote, urlencode
-from ansible.module_utils._text import to_native, to_text
+
+from galaxy_client.token import GalaxyToken
+from galaxy_client.compat import six
+from galaxy_client.compat.six.moves.urllib.error import HTTPError
+from galaxy_client.compat.six.moves.urllib.parse import quote as urlquote, urlencode
+from galaxy_client.config import runtime
+from galaxy_client import exceptions
+from galaxy_client.utils.text import to_native, to_text
+
 from ansible.module_utils.urls import open_url
 
 try:
@@ -47,7 +49,7 @@ def g_connect(method):
             display.vvvv("Initial connection to galaxy_server: %s" % self._api_server)
             server_version = self._get_server_api_version()
             if server_version not in self.SUPPORTED_VERSIONS:
-                raise AnsibleError("Unsupported Galaxy server API version: %s" % server_version)
+                raise exceptions.GalaxyClientError("Unsupported Galaxy server API version: %s" % server_version)
 
             self.baseurl = '%s/api/%s' % (self._api_server, server_version)
             self.version = server_version  # for future use
@@ -65,7 +67,7 @@ class GalaxyAPI(object):
     def __init__(self, galaxy):
         self.galaxy = galaxy
         self.token = GalaxyToken()
-        self._api_server = C.GALAXY_SERVER
+        self._api_server = runtime.GALAXY_SERVER
         self._validate_certs = not galaxy.options.ignore_certs
         self.baseurl = None
         self.version = None
@@ -74,13 +76,13 @@ class GalaxyAPI(object):
         display.debug('Validate TLS certificates: %s' % self._validate_certs)
 
         # set the API server
-        if galaxy.options.api_server != C.GALAXY_SERVER:
+        if galaxy.options.api_server != runtime.GALAXY_SERVER:
             self._api_server = galaxy.options.api_server
 
     def __auth_header(self):
         token = self.token.get()
         if token is None:
-            raise AnsibleError("No access token. You must first use login to authenticate and obtain an access token.")
+            raise exceptions.GalaxyClientError("No access token. You must first use login to authenticate and obtain an access token.")
         return {'Authorization': 'Token ' + token}
 
     @g_connect
@@ -94,7 +96,7 @@ class GalaxyAPI(object):
             data = json.loads(to_text(resp.read(), errors='surrogate_or_strict'))
         except HTTPError as e:
             res = json.loads(to_text(e.fp.read(), errors='surrogate_or_strict'))
-            raise AnsibleError(res['detail'])
+            raise exceptions.GalaxyClientError(res['detail'])
         return data
 
     @property
@@ -114,15 +116,15 @@ class GalaxyAPI(object):
         try:
             return_data = open_url(url, validate_certs=self._validate_certs)
         except Exception as e:
-            raise AnsibleError("Failed to get data from the API server (%s): %s " % (url, to_native(e)))
+            raise exceptions.GalaxyClientError("Failed to get data from the API server (%s): %s " % (url, to_native(e)))
 
         try:
             data = json.loads(to_text(return_data.read(), errors='surrogate_or_strict'))
         except Exception as e:
-            raise AnsibleError("Could not process data from the API server (%s): %s " % (url, to_native(e)))
+            raise exceptions.GalaxyClientError("Could not process data from the API server (%s): %s " % (url, to_native(e)))
 
         if 'current_version' not in data:
-            raise AnsibleError("missing required 'current_version' from server response (%s)" % url)
+            raise exceptions.GalaxyClientError("missing required 'current_version' from server response (%s)" % url)
 
         return data['current_version']
 
@@ -168,7 +170,7 @@ class GalaxyAPI(object):
         elif github_user is not None and github_repo is not None:
             url = "%s?github_user=%s&github_repo=%s" % (url, github_user, github_repo)
         else:
-            raise AnsibleError("Expected task_id or github_user and github_repo")
+            raise exceptions.GalaxyClientError("Expected task_id or github_user and github_repo")
 
         data = self.__call_galaxy(url)
         return data['results']
@@ -187,7 +189,7 @@ class GalaxyAPI(object):
             if notify:
                 display.display("- downloading role '%s', owned by %s" % (role_name, user_name))
         except:
-            raise AnsibleError("Invalid role name (%s). Specify role as format: username.rolename" % role_name)
+            raise exceptions.GalaxyClientError("Invalid role name (%s). Specify role as format: username.rolename" % role_name)
 
         url = '%s/roles/?owner__username=%s&name=%s' % (self.baseurl, user_name, role_name)
         data = self.__call_galaxy(url)
@@ -238,7 +240,7 @@ class GalaxyAPI(object):
                 done = (data.get('next_link', None) is None)
             return results
         except Exception as error:
-            raise AnsibleError("Failed to download the %s list: %s" % (what, str(error)))
+            raise exceptions.GalaxyClientError("Failed to download the %s list: %s" % (what, str(error)))
 
     @g_connect
     def search_roles(self, search, **kwargs):
@@ -253,11 +255,11 @@ class GalaxyAPI(object):
         page_size = kwargs.get('page_size', None)
         author = kwargs.get('author', None)
 
-        if tags and isinstance(tags, string_types):
+        if tags and isinstance(tags, six.string_types):
             tags = tags.split(',')
             search_url += '&tags_autocomplete=' + '+'.join(tags)
 
-        if platforms and isinstance(platforms, string_types):
+        if platforms and isinstance(platforms, six.string_types):
             platforms = platforms.split(',')
             search_url += '&platforms_autocomplete=' + '+'.join(platforms)
 
