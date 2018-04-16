@@ -287,53 +287,7 @@ class CLI(with_metaclass(ABCMeta, object)):
         """
 
         self.options, self.args = self.parser.parse_args(self.args[1:])
-
-        # process tags
-        if hasattr(self.options, 'tags') and not self.options.tags:
-            # optparse defaults does not do what's expected
-            self.options.tags = ['all']
-        if hasattr(self.options, 'tags') and self.options.tags:
-            if not C.MERGE_MULTIPLE_CLI_TAGS:
-                if len(self.options.tags) > 1:
-                    display.deprecated('Specifying --tags multiple times on the command line currently uses the last specified value. '
-                                       'In 2.4, values will be merged instead.  Set merge_multiple_cli_tags=True in ansible.cfg to get this behavior now.',
-                                       version=2.5, removed=False)
-                    self.options.tags = [self.options.tags[-1]]
-
-            tags = set()
-            for tag_set in self.options.tags:
-                for tag in tag_set.split(u','):
-                    tags.add(tag.strip())
-            self.options.tags = list(tags)
-
-        # process skip_tags
-        if hasattr(self.options, 'skip_tags') and self.options.skip_tags:
-            if not C.MERGE_MULTIPLE_CLI_TAGS:
-                if len(self.options.skip_tags) > 1:
-                    display.deprecated('Specifying --skip-tags multiple times on the command line currently uses the last specified value. '
-                                       'In 2.4, values will be merged instead.  Set merge_multiple_cli_tags=True in ansible.cfg to get this behavior now.',
-                                       version=2.5, removed=False)
-                    self.options.skip_tags = [self.options.skip_tags[-1]]
-
-            skip_tags = set()
-            for tag_set in self.options.skip_tags:
-                for tag in tag_set.split(u','):
-                    skip_tags.add(tag.strip())
-            self.options.skip_tags = list(skip_tags)
-
         # process inventory options except for CLIs that require their own processing
-        if hasattr(self.options, 'inventory') and not self.SKIP_INVENTORY_DEFAULTS:
-
-            if self.options.inventory:
-
-                # should always be list
-                if isinstance(self.options.inventory, string_types):
-                    self.options.inventory = [self.options.inventory]
-
-                # Ensure full paths when needed
-                self.options.inventory = [unfrackpath(opt, follow=False) if ',' not in opt else opt for opt in self.options.inventory]
-            else:
-                self.options.inventory = C.DEFAULT_HOST_LIST
 
     @staticmethod
     def version(prog):
