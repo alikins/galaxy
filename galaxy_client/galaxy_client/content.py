@@ -40,8 +40,7 @@ from galaxy_client.config import defaults
 from galaxy_client import exceptions
 from galaxy_client.compat import six
 
-from ansible.playbook.role.requirement import RoleRequirement
-from ansible.module_utils.urls import open_url
+from galaxy_client.remove_me.urls import open_url
 
 try:
     from __main__ import display

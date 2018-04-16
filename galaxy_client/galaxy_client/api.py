@@ -33,7 +33,8 @@ from galaxy_client.config import runtime
 from galaxy_client import exceptions
 from galaxy_client.utils.text import to_native, to_text
 
-from ansible.module_utils.urls import open_url
+# FIXME: would be nice to just use requests, or better, some async https client
+from galaxy_client.remove_me.urls import open_url
 
 try:
     from __main__ import display
