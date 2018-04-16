@@ -34,13 +34,14 @@ import shutil
 from distutils.version import LooseVersion
 from shutil import rmtree
 
-from ansible import constants as C
 from ansible.errors import AnsibleError
 from ansible.module_utils.urls import open_url
 from ansible.module_utils.six import string_types
 from ansible.playbook.role.requirement import RoleRequirement
 from ansible.galaxy.api import GalaxyAPI
 from ansible.galaxy import Galaxy
+
+from galaxy_client.config import defaults
 
 try:
     from __main__ import display
@@ -60,6 +61,17 @@ VALID_ROLE_SPEC_KEYS = [
 VALID_CONTENT_SPEC_KEYS = [
 
 ]
+
+# Galaxy Content Constants
+CONTENT_PLUGIN_TYPES = (
+    'module', 'module_util', 'action_plugin', 'filter_plugin',
+    'connection_plugin', 'inventory_plugin', 'lookup_plugin',
+    'shell_plugin', 'strategy_plugin', 'netconf_plugin'
+
+)
+CONTENT_TYPES = CONTENT_PLUGIN_TYPES + ('role',)
+# This is used to determine install location
+CONTENT_TYPE_DIR_MAP = {k: "%ss" % k for k in CONTENT_TYPES}
 
 
 class GalaxyContent(object):
@@ -198,7 +210,7 @@ class GalaxyContent(object):
             if self.type != "all":
                 self.galaxy.content_paths = [os.path.join(p, C.CONTENT_TYPE_DIR_MAP[self.type]) for p in C.DEFAULT_CONTENT_PATH]
             else:
-                self.galaxy.content_paths = C.DEFAULT_CONTENT_PATH
+                self.galaxy.content_paths = defaults.DEFAULT_CONTENT_PATH
 
             # use the first path by default
             if self.type == "role":
