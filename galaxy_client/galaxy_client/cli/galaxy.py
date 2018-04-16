@@ -50,7 +50,7 @@ from galaxy_client import base
 from galaxy_client import cli
 from galaxy_client.config import defaults
 from galaxy_client.config import runtime
-from galaxy_client import content
+from galaxy_client.content import CONTENT_TYPES
 from galaxy_client import exceptions
 from galaxy_client.utils.text import to_text
 
@@ -110,7 +110,7 @@ class GalaxyCLI(cli.CLI):
             self.parser.add_option('-i', '--ignore-errors', dest='ignore_errors', action='store_true', default=False,
                                    help='Ignore errors and continue with the next specified role.')
             self.parser.add_option('-n', '--no-deps', dest='no_deps', action='store_true', default=False, help='Don\'t download roles listed as dependencies')
-            self.parser.add_option('-r', '--role-file', dest='role_file', help='A file containing a list of roles to be imported') #FIXME - Unsure about keeping this around
+            self.parser.add_option('-r', '--role-file', dest='role_file', help='A file containing a list of roles to be imported')  # FIXME - Unsure about keeping this around
             self.parser.add_option('-t', '--type', dest='content_type', default="all", help='A type of Galaxy Content to install: role, module, etc')
         elif self.action == "remove":
             self.parser.set_usage("usage: %prog remove role1 role2 ...")
@@ -336,10 +336,10 @@ class GalaxyCLI(cli.CLI):
         #       probably find a better solution before this goes GA
         #
         # Fix content_path if this was not provided
-        if self.options.content_type != "all" and self.options.content_type not in content.CONTENT_TYPES:
+        if self.options.content_type != "all" and self.options.content_type not in CONTENT_TYPES:
             raise exceptions.CliOptionsError(
                 "- invalid Galaxy Content type provided: %s\n  - Expected one of: %s" %
-                (self.options.content_type, ", ".join(content.CONTENT_TYPES))
+                (self.options.content_type, ", ".join(CONTENT_TYPES))
             )
 
         # If someone provides a --roles-path at the command line, we assume this is
@@ -378,7 +378,7 @@ class GalaxyCLI(cli.CLI):
             #         maybe we want this but only for role types for backwards
             #         compat
             #
-            #if role_file and self.args and role.name not in self.args:
+            # if role_file and self.args and role.name not in self.args:
             #    display.vvv('Skipping role %s' % role.name)
             #    continue
 
