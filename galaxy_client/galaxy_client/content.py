@@ -343,8 +343,8 @@ class GalaxyContent(object):
                             # archive directory name and we don't need/want that
                             plugin_found = parent_dir.lstrip(self.name)
 
-                    elif len(parts_list) > 1 and parts_list[-2] == C.CONTENT_TYPE_DIR_MAP[self.type]:
-                        plugin_found = C.CONTENT_TYPE_DIR_MAP[self.type]
+                    elif len(parts_list) > 1 and parts_list[-2] == CONTENT_TYPE_DIR_MAP[self.type]:
+                        plugin_found = CONTENT_TYPE_DIR_MAP[self.type]
                     if not plugin_found:
                         continue
 
@@ -373,13 +373,13 @@ class GalaxyContent(object):
                         final_parts.append(part)
                 member.name = os.path.join(*final_parts)
 
-                if self.type in C.CONTENT_PLUGIN_TYPES:
+                if self.type in CONTENT_PLUGIN_TYPES:
                     display.display(
                         "-- extracting %s %s from %s into %s" %
                         (self.type, member.name, self.name, os.path.join(self.path, member.name))
                     )
                 if os.path.exists(os.path.join(self.path, member.name)) and not getattr(self.options, "force", False):
-                    if self.type in C.CONTENT_PLUGIN_TYPES:
+                    if self.type in CONTENT_PLUGIN_TYPES:
                         message = (
                             "the specified Galaxy Content %s appears to already exist." % os.path.join(self.path, member.name),
                             "Use of --force for non-role Galaxy Content Type is not yet supported"
@@ -583,7 +583,7 @@ class GalaxyContent(object):
                                 parent_dir_found = True
                                 break
                         else:
-                            for plugin_dir in C.CONTENT_TYPE_DIR_MAP.values():
+                            for plugin_dir in CONTENT_TYPE_DIR_MAP.values():
                                 if plugin_dir in member.name:
                                     archive_parent_dir = os.path.dirname(member.name)
                                     parent_dir_found = True
@@ -592,7 +592,7 @@ class GalaxyContent(object):
                                 break
 
                     if not parent_dir_found:
-                        if self.type in C.CONTENT_PLUGIN_TYPES:
+                        if self.type in CONTENT_PLUGIN_TYPES:
                             raise exceptions.GalaxyClientError("No content metadata provided, nor content directories found for type: %s" % self.type)
 
                 if not meta_file and not galaxy_file and self.type == "role":
@@ -776,7 +776,7 @@ class GalaxyContent(object):
                                     os.path.join(m.name.split(os.sep)[1:])[0]
                                         for m in members
                                             if len(os.path.join(m.name.split(os.sep)[1:])) > 1
-                                            and os.path.join(m.name.split(os.sep)[1:])[0] in C.CONTENT_TYPE_DIR_MAP.values()
+                                            and os.path.join(m.name.split(os.sep)[1:])[0] in CONTENT_TYPE_DIR_MAP.values()
                                 ]
 
                                 if plugin_subdirs:
@@ -792,7 +792,7 @@ class GalaxyContent(object):
                                         self._write_archived_files(content_tar_file, archive_parent_dir)
                                         installed = True
                                 else:
-                                    raise exceptions.GalaxyClientError("This Galaxy Content does not contain valid content subdirectories, expected any of: %s " % C.CONTENT_TYPES)
+                                    raise exceptions.GalaxyClientError("This Galaxy Content does not contain valid content subdirectories, expected any of: %s " % CONTENT_TYPES)
 
                     except OSError as e:
                         error = True
