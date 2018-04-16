@@ -31,10 +31,6 @@ import yaml
 
 from abc import ABCMeta, abstractmethod
 
-from ansible.utils.vars import load_extra_vars, load_options_vars
-from ansible.vars.manager import VariableManager
-from ansible.parsing.vault import PromptVaultSecret, get_file_vault_secret
-
 # FIXME: so --version can show the galaxy_client.__path__ in its output
 import galaxy_client
 
