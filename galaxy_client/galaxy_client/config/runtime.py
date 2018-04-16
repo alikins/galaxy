@@ -22,3 +22,7 @@ COLOR_WARN = "bright purple"
 # used by display.py
 DEPRECATION_WARNINGS = True
 SYSTEM_WARNINGS = True
+
+# FIXME:
+# The CONFIG_FILE to use is a config option?
+CONFIG_FILE = None

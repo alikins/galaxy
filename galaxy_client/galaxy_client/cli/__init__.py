@@ -20,7 +20,6 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import getpass
 import operator
 import optparse
 import os
@@ -32,9 +31,6 @@ import yaml
 
 from abc import ABCMeta, abstractmethod
 
-import ansible
-#from ansible import constants as C
-from ansible.errors import AnsibleOptionsError, AnsibleError
 from ansible.inventory.manager import InventoryManager
 from ansible.module_utils.six import with_metaclass, string_types
 from ansible.module_utils._text import to_bytes, to_text
@@ -45,6 +41,10 @@ from ansible.utils.vars import load_extra_vars, load_options_vars
 from ansible.vars.manager import VariableManager
 from ansible.parsing.vault import PromptVaultSecret, get_file_vault_secret
 
+# FIXME: so --version can show the galaxy_client.__path__ in its output
+import galaxy_client
+
+from galaxy_client import exceptions
 from galaxy_client.config import runtime
 
 try:
@@ -147,7 +147,7 @@ class CLI(with_metaclass(ABCMeta, object)):
             tmp_parser = InvalidOptsParser(self.parser)
             tmp_options, tmp_args = tmp_parser.parse_args(self.args)
             if not(hasattr(tmp_options, 'help') and tmp_options.help) or (hasattr(tmp_options, 'version') and tmp_options.version):
-                raise AnsibleOptionsError("Missing required action")
+                raise exceptions.CliOptionsError("Missing required action")
 
     def execute(self):
         """
@@ -170,13 +170,16 @@ class CLI(with_metaclass(ABCMeta, object)):
 
         display.vv(to_text(self.parser.get_version()))
 
-        if C.CONFIG_FILE:
-            display.v(u"Using %s as config file" % to_text(C.CONFIG_FILE))
+        if runtime.CONFIG_FILE:
+            display.v(u"Using %s as config file" % to_text(runtime.CONFIG_FILE))
         else:
             display.v(u"No config file found; using defaults")
 
+    # FIXME: doesn't make sense without real config yet
+    # NOTE: not used at the moment
+    def _validate_config(self):
         # warn about deprecated config options
-        for deprecated in C.config.DEPRECATED:
+        for deprecated in runtime.config.DEPRECATED:
             name = deprecated[0]
             why = deprecated[1]['why']
             if 'alternatives' in deprecated[1]:
@@ -187,7 +190,7 @@ class CLI(with_metaclass(ABCMeta, object)):
             display.deprecated("%s option, %s %s" % (name, why, alt), version=ver)
 
         # warn about typing issues with configuration entries
-        for unable in C.config.UNABLE:
+        for unable in runtime.config.UNABLE:
             display.warning("Unable to set correct type for configuration entry: %s" % unable)
 
     def validate_conflicts(self, vault_opts=False, runas_opts=False, fork_opts=False, vault_rekey_opts=False):
@@ -247,12 +250,12 @@ class CLI(with_metaclass(ABCMeta, object)):
 
         # base opts
         parser = SortedOptParser(usage, version=CLI.version("%prog"), description=desc, epilog=epilog)
-        parser.add_option('-v', '--verbose', dest='verbosity', default=C.DEFAULT_VERBOSITY, action="count",
+        parser.add_option('-v', '--verbose', dest='verbosity', default=runtime.DEFAULT_VERBOSITY, action="count",
                           help="verbose mode (-vvv for more, -vvvv to enable connection debugging)")
 
         if module_opts:
             parser.add_option('-M', '--module-path', dest='module_path', default=None,
-                              help="prepend colon-separated path(s) to module library (default=%s)" % C.DEFAULT_MODULE_PATH,
+                              help="prepend colon-separated path(s) to module library (default=%s)" % runtime.DEFAULT_MODULE_PATH,
                               action="callback", callback=CLI.unfrack_paths, type='str')
         if runtask_opts:
             parser.add_option('-e', '--extra-vars', dest="extra_vars", action="append",
@@ -296,19 +299,19 @@ class CLI(with_metaclass(ABCMeta, object)):
         gitinfo = CLI._gitinfo()
         if gitinfo:
             result = result + " {0}".format(gitinfo)
-        result += "\n  config file = %s" % C.CONFIG_FILE
-        if C.DEFAULT_MODULE_PATH is None:
+        result += "\n  config file = %s" % runtime.CONFIG_FILE
+        if runtime.DEFAULT_MODULE_PATH is None:
             cpath = "Default w/o overrides"
         else:
-            cpath = C.DEFAULT_MODULE_PATH
-        if C.DEFAULT_CONTENT_PATH is None:
+            cpath = runtime.DEFAULT_MODULE_PATH
+        if runtime.DEFAULT_CONTENT_PATH is None:
             conpath = "Default w/o overrides"
         else:
-            conpath = C.DEFAULT_CONTENT_PATH
+            conpath = runtime.DEFAULT_CONTENT_PATH
 
         result = result + "\n  configured module search path = %s" % cpath
         result = result + "\n  configured galaxy content search path = %s" % conpath
-        result = result + "\n  ansible python module location = %s" % ':'.join(ansible.__path__)
+        result = result + "\n  ansible python module location = %s" % ':'.join(galaxy_client.__path__)
         result = result + "\n  executable location = %s" % sys.argv[0]
         result = result + "\n  python version = %s" % ''.join(sys.version.splitlines())
         return result
@@ -445,19 +448,3 @@ class CLI(with_metaclass(ABCMeta, object)):
 
         return t
 
-    @staticmethod
-    def get_host_list(inventory, subset, pattern='all'):
-
-        no_hosts = False
-        if len(inventory.list_hosts()) == 0:
-            # Empty inventory
-            display.warning("provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'")
-            no_hosts = True
-
-        inventory.subset(subset)
-
-        hosts = inventory.list_hosts(pattern)
-        if len(hosts) == 0 and no_hosts is False:
-            raise AnsibleError("Specified hosts and/or --limit does not match any hosts")
-
-        return hosts
