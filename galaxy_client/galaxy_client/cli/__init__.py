@@ -446,40 +446,6 @@ class CLI(with_metaclass(ABCMeta, object)):
         return t
 
     @staticmethod
-    def _play_prereqs(options):
-
-        # all needs loader
-        loader = DataLoader()
-
-        basedir = getattr(options, 'basedir', False)
-        if basedir:
-            loader.set_basedir(basedir)
-
-        vault_ids = options.vault_ids
-        default_vault_ids = C.DEFAULT_VAULT_IDENTITY_LIST
-        vault_ids = default_vault_ids + vault_ids
-
-        vault_secrets = CLI.setup_vault_secrets(loader,
-                                                vault_ids=vault_ids,
-                                                vault_password_files=options.vault_password_files,
-                                                ask_vault_pass=options.ask_vault_pass,
-                                                auto_prompt=False)
-        loader.set_vault_secrets(vault_secrets)
-
-        # create the inventory, and filter it based on the subset specified (if any)
-        inventory = InventoryManager(loader=loader, sources=options.inventory)
-
-        # create the variable manager, which will be shared throughout
-        # the code, ensuring a consistent view of global variables
-        variable_manager = VariableManager(loader=loader, inventory=inventory)
-
-        # load vars from cli options
-        variable_manager.extra_vars = load_extra_vars(loader=loader, options=options)
-        variable_manager.options_vars = load_options_vars(options, CLI.version_info(gitinfo=False))
-
-        return loader, inventory, variable_manager
-
-    @staticmethod
     def get_host_list(inventory, subset, pattern='all'):
 
         no_hosts = False
