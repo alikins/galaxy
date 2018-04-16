@@ -24,8 +24,6 @@ import getpass
 import locale
 import logging
 import os
-import random
-import subprocess
 import sys
 import textwrap
 import time
@@ -35,7 +33,7 @@ from termios import TIOCGWINSZ
 
 from ansible import constants as C
 # from ansible.errors import AnsibleError
-from ansible.module_utils._text import to_bytes, to_text
+# from ansible.module_utils._text import to_bytes, to_text
 
 from galaxy_client import exceptions
 from galaxy_client.utils.text import to_bytes, to_text
@@ -73,13 +71,6 @@ if C.DEFAULT_LOG_PATH:
     else:
         print("[WARNING]: log file at %s is not writeable and we cannot create it, aborting\n" % path, file=sys.stderr)
 
-b_COW_PATHS = (
-    b"/usr/bin/cowsay",
-    b"/usr/games/cowsay",
-    b"/usr/local/bin/cowsay",  # BSD path for cowsay
-    b"/opt/local/bin/cowsay",  # MacPorts path for cowsay
-)
-
 
 class Display:
 
@@ -93,34 +84,7 @@ class Display:
         self._warns = {}
         self._errors = {}
 
-        self.b_cowsay = None
-        self.noncow = C.ANSIBLE_COW_SELECTION
-
-        self.set_cowsay_info()
-
-        if self.b_cowsay:
-            try:
-                cmd = subprocess.Popen([self.b_cowsay, "-l"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                (out, err) = cmd.communicate()
-                self.cows_available = set([to_text(c) for c in out.split()])
-                if C.ANSIBLE_COW_WHITELIST:
-                    self.cows_available = set(C.ANSIBLE_COW_WHITELIST).intersection(self.cows_available)
-            except:
-                # could not execute cowsay for some reason
-                self.b_cowsay = False
-
         self._set_column_width()
-
-    def set_cowsay_info(self):
-        if C.ANSIBLE_NOCOWS:
-            return
-
-        if C.ANSIBLE_COW_PATH:
-            self.b_cowsay = C.ANSIBLE_COW_PATH
-        else:
-            for b_cow_path in b_COW_PATHS:
-                if os.path.exists(b_cow_path):
-                    self.b_cowsay = b_cow_path
 
     def display(self, msg, color=None, stderr=False, screen_only=False, log_only=False):
         """ Display a message to the user
@@ -249,36 +213,12 @@ class Display:
         '''
         Prints a header-looking line with cowsay or stars wit hlength depending on terminal width (3 minimum)
         '''
-        if self.b_cowsay and cows:
-            try:
-                self.banner_cowsay(msg)
-                return
-            except OSError:
-                self.warning("somebody cleverly deleted cowsay or something during the PB run.  heh.")
-
         msg = msg.strip()
         star_len = self.columns - len(msg)
         if star_len <= 3:
             star_len = 3
         stars = u"*" * star_len
         self.display(u"\n%s %s" % (msg, stars), color=color)
-
-    def banner_cowsay(self, msg, color=None):
-        if u": [" in msg:
-            msg = msg.replace(u"[", u"")
-            if msg.endswith(u"]"):
-                msg = msg[:-1]
-        runcmd = [self.b_cowsay, b"-W", b"60"]
-        if self.noncow:
-            thecow = self.noncow
-            if thecow == 'random':
-                thecow = random.choice(list(self.cows_available))
-            runcmd.append(b'-f')
-            runcmd.append(to_bytes(thecow))
-        runcmd.append(to_bytes(msg))
-        cmd = subprocess.Popen(runcmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (out, err) = cmd.communicate()
-        self.display(u"%s\n" % to_text(out), color=color)
 
     def error(self, msg, wrap_text=True):
         if wrap_text:
