@@ -188,37 +188,6 @@ class CLI(with_metaclass(ABCMeta, object)):
         for unable in C.config.UNABLE:
             display.warning("Unable to set correct type for configuration entry: %s" % unable)
 
-
-    def ask_passwords(self):
-        ''' prompt for connection and become passwords if needed '''
-
-        op = self.options
-        sshpass = None
-        becomepass = None
-        become_prompt = ''
-
-        become_prompt_method = "BECOME" if C.AGNOSTIC_BECOME_PROMPT else op.become_method.upper()
-
-        try:
-            if op.ask_pass:
-                sshpass = getpass.getpass(prompt="SSH password: ")
-                become_prompt = "%s password[defaults to SSH password]: " % become_prompt_method
-                if sshpass:
-                    sshpass = to_bytes(sshpass, errors='strict', nonstring='simplerepr')
-            else:
-                become_prompt = "%s password: " % become_prompt_method
-
-            if op.become_ask_pass:
-                becomepass = getpass.getpass(prompt=become_prompt)
-                if op.ask_pass and becomepass == '':
-                    becomepass = sshpass
-                if becomepass:
-                    becomepass = to_bytes(becomepass)
-        except EOFError:
-            pass
-
-        return (sshpass, becomepass)
-
     def normalize_become_options(self):
         ''' this keeps backwards compatibility with sudo/su self.options '''
         self.options.become_ask_pass = self.options.become_ask_pass or self.options.ask_sudo_pass or self.options.ask_su_pass or C.DEFAULT_BECOME_ASK_PASS
@@ -323,20 +292,6 @@ class CLI(with_metaclass(ABCMeta, object)):
         if fork_opts:
             parser.add_option('-f', '--forks', dest='forks', default=C.DEFAULT_FORKS, type='int',
                               help="specify number of parallel processes to use (default=%s)" % C.DEFAULT_FORKS)
-
-        if vault_opts:
-            parser.add_option('--ask-vault-pass', default=C.DEFAULT_ASK_VAULT_PASS, dest='ask_vault_pass', action='store_true',
-                              help='ask for vault password')
-            parser.add_option('--vault-password-file', default=[], dest='vault_password_files',
-                              help="vault password file", action="callback", callback=CLI.unfrack_paths, type='string')
-            parser.add_option('--vault-id', default=[], dest='vault_ids', action='append', type='string',
-                              help='the vault identity to use')
-
-        if vault_rekey_opts:
-            parser.add_option('--new-vault-password-file', default=None, dest='new_vault_password_file',
-                              help="new vault password file for rekey", action="callback", callback=CLI.unfrack_path, type='string')
-            parser.add_option('--new-vault-id', default=None, dest='new_vault_id', type='string',
-                              help='the new vault identity to use for rekey')
 
         if subset_opts:
             parser.add_option('-t', '--tags', dest='tags', default=C.TAGS_RUN, action='append',
