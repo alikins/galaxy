@@ -123,7 +123,7 @@ class GalaxyContent(object):
 
         self._set_type(type)
 
-        if self.type not in C.CONTENT_TYPES and self.type != "all":
+        if self.type not in CONTENT_TYPES and self.type != "all":
             raise exceptions.GalaxyClientError("%s is not a valid Galaxy Content Type" % self.type)
 
         # Set original path, needed to determine what action to take in order to
@@ -207,7 +207,7 @@ class GalaxyContent(object):
             # singular of type between the contants vars read in from the config
             # file and the subdirectories
             if self.type != "all":
-                self.galaxy.content_paths = [os.path.join(p, C.CONTENT_TYPE_DIR_MAP[self.type]) for p in C.DEFAULT_CONTENT_PATH]
+                self.galaxy.content_paths = [os.path.join(p, CONTENT_TYPE_DIR_MAP[self.type]) for p in defaults.DEFAULT_CONTENT_PATH]
             else:
                 self.galaxy.content_paths = defaults.DEFAULT_CONTENT_PATH
 
