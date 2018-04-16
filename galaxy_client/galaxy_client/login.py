@@ -25,12 +25,11 @@ __metaclass__ = type
 import getpass
 import json
 
-from ansible.errors import AnsibleError, AnsibleOptionsError
-from ansible.module_utils.six.moves import input
-from ansible.module_utils.six.moves.urllib.parse import quote as urlquote, urlparse
-from ansible.module_utils.six.moves.urllib.error import HTTPError
-from ansible.module_utils.urls import open_url
-from ansible.utils.color import stringc
+from galaxy_client.compat import six
+from galaxy_client.compat.six.moves.urllib.error import HTTPError
+from galaxy_client import exceptions
+from galaxy_client.remove_me.urls import open_url
+from galaxy_client.utils.color import stringc
 
 try:
     from __main__ import display
@@ -62,7 +61,7 @@ class GalaxyLogin(object):
                         " if you do not want to enter your password." + u'\n\n', screen_only=True)
 
         try:
-            self.github_username = input("Github Username: ")
+            self.github_username = six.input("Github Username: ")
         except:
             pass
 
@@ -72,7 +71,7 @@ class GalaxyLogin(object):
             pass
 
         if not self.github_username or not self.github_password:
-            raise AnsibleError("Invalid Github credentials. Username and password are required.")
+            raise exceptions.GalaxyClientError("Invalid Github credentials. Username and password are required.")
 
     def remove_github_token(self):
         '''
@@ -84,7 +83,7 @@ class GalaxyLogin(object):
                                url_password=self.github_password, force_basic_auth=True,))
         except HTTPError as e:
             res = json.load(e)
-            raise AnsibleError(res['message'])
+            raise exceptions.GalaxyClientError(res['message'])
 
         for token in tokens:
             if token['note'] == 'ansible-galaxy login':
@@ -94,7 +93,7 @@ class GalaxyLogin(object):
                              url_password=self.github_password, method='DELETE', force_basic_auth=True)
                 except HTTPError as e:
                     res = json.load(e)
-                    raise AnsibleError(res['message'])
+                    raise exceptions.GalaxyClientError(res['message'])
 
     def create_github_token(self):
         '''
@@ -107,5 +106,5 @@ class GalaxyLogin(object):
                              url_password=self.github_password, force_basic_auth=True, data=args))
         except HTTPError as e:
             res = json.load(e)
-            raise AnsibleError(res['message'])
+            raise exceptions.GalaxyClientError(res['message'])
         return data['token']
