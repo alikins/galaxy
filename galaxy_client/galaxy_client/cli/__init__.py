@@ -31,7 +31,6 @@ import yaml
 
 from abc import ABCMeta, abstractmethod
 
-from ansible.inventory.manager import InventoryManager
 from ansible.module_utils.six import with_metaclass, string_types
 from ansible.module_utils._text import to_bytes, to_text
 from ansible.parsing.dataloader import DataLoader
