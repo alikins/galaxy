@@ -31,9 +31,6 @@ import yaml
 
 from abc import ABCMeta, abstractmethod
 
-from ansible.module_utils.six import with_metaclass, string_types
-from ansible.module_utils._text import to_bytes, to_text
-from ansible.parsing.dataloader import DataLoader
 from ansible.release import __version__
 from ansible.utils.path import unfrackpath
 from ansible.utils.vars import load_extra_vars, load_options_vars
@@ -44,7 +41,9 @@ from ansible.parsing.vault import PromptVaultSecret, get_file_vault_secret
 import galaxy_client
 
 from galaxy_client import exceptions
+from galaxy_client.compat import six
 from galaxy_client.config import runtime
+from galaxy_client.utils.text import to_bytes, to_text
 
 try:
     from __main__ import display
@@ -97,7 +96,7 @@ class InvalidOptsParser(SortedOptParser):
             pass
 
 
-class CLI(with_metaclass(ABCMeta, object)):
+class CLI(six.with_metaclass(ABCMeta, object)):
     ''' code behind bin/ansible* programs '''
 
     VALID_ACTIONS = []
@@ -225,7 +224,7 @@ class CLI(with_metaclass(ABCMeta, object)):
         if paths is None:
             paths = []
 
-        if isinstance(value, string_types):
+        if isinstance(value, six.string_types):
             paths[:0] = [unfrackpath(x) for x in value.split(os.pathsep) if x]
         elif isinstance(value, list):
             paths[:0] = [unfrackpath(x) for x in value if x]
