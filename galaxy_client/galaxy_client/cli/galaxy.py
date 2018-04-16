@@ -46,10 +46,12 @@ except ImportError:
     from ansible.utils.display import Display
     display = Display()
 
+from galaxy_client import base
 from galaxy_client import cli
 from galaxy_client.config import defaults
+from galaxy_client.config import runtime
+from galaxy_client import content
 from galaxy_client import exceptions
-from galaxy_client import base
 from galaxy_client.utils.text import to_text
 
 # FIXME: importing class, fix name collision later or use this style
@@ -93,7 +95,7 @@ class GalaxyCLI(cli.CLI):
                                    help='The path in which the skeleton role will be created. The default is the current working directory.')
             self.parser.add_option('--type', dest='role_type', action='store', default='default',
                                    help="Initialize using an alternate role type. Valid types include: 'container', 'apb' and 'network'.")
-            self.parser.add_option('--role-skeleton', dest='role_skeleton', default=C.GALAXY_ROLE_SKELETON,
+            self.parser.add_option('--role-skeleton', dest='role_skeleton', default=runtime.GALAXY_ROLE_SKELETON,
                                    help='The path to a role skeleton that the new role should be based upon.')
         elif self.action == "install":
             self.parser.set_usage("usage: %prog install [options] [-r FILE | role_name(s)[,version] | scm+role_repo_url[,version] | tar_file(s)]")
@@ -151,8 +153,8 @@ class GalaxyCLI(cli.CLI):
         )
 
         # common
-        self.parser.add_option('-s', '--server', dest='api_server', default=C.GALAXY_SERVER, help='The API server destination')
-        self.parser.add_option('-c', '--ignore-certs', action='store_true', dest='ignore_certs', default=C.GALAXY_IGNORE_CERTS,
+        self.parser.add_option('-s', '--server', dest='api_server', default=runtime.GALAXY_SERVER, help='The API server destination')
+        self.parser.add_option('-c', '--ignore-certs', action='store_true', dest='ignore_certs', default=runtime.GALAXY_IGNORE_CERTS,
                                help='Ignore SSL certificate validation errors.')
         self.set_action()
 
@@ -239,7 +241,7 @@ class GalaxyCLI(cli.CLI):
             os.makedirs(role_path)
 
         if role_skeleton is not None:
-            skeleton_ignore_expressions = C.GALAXY_ROLE_SKELETON_IGNORE
+            skeleton_ignore_expressions = runtime.GALAXY_ROLE_SKELETON_IGNORE
         else:
             role_skeleton = self.galaxy.default_role_skeleton_path
             skeleton_ignore_expressions = ['^.*/.git_keep$']
@@ -334,10 +336,10 @@ class GalaxyCLI(cli.CLI):
         #       probably find a better solution before this goes GA
         #
         # Fix content_path if this was not provided
-        if self.options.content_type != "all" and self.options.content_type not in C.CONTENT_TYPES:
+        if self.options.content_type != "all" and self.options.content_type not in content.CONTENT_TYPES:
             raise exceptions.CliOptionsError(
                 "- invalid Galaxy Content type provided: %s\n  - Expected one of: %s" %
-                (self.options.content_type, ", ".join(C.CONTENT_TYPES))
+                (self.options.content_type, ", ".join(content.CONTENT_TYPES))
             )
 
         # If someone provides a --roles-path at the command line, we assume this is
@@ -656,7 +658,7 @@ class GalaxyCLI(cli.CLI):
                                          tags=self.options.galaxy_tags, author=self.options.author, page_size=page_size)
 
         if response['count'] == 0:
-            display.display("No roles match your search.", color=C.COLOR_ERROR)
+            display.display("No roles match your search.", color=runtime.COLOR_ERROR)
             return True
 
         data = [u'']
@@ -688,8 +690,8 @@ class GalaxyCLI(cli.CLI):
         """
         # Authenticate with github and retrieve a token
         if self.options.token is None:
-            if C.GALAXY_TOKEN:
-                github_token = C.GALAXY_TOKEN
+            if runtime.GALAXY_TOKEN:
+                github_token = runtime.GALAXY_TOKEN
             else:
                 login = GalaxyLogin(self.galaxy)
                 github_token = login.create_github_token()
@@ -698,7 +700,7 @@ class GalaxyCLI(cli.CLI):
 
         galaxy_response = self.api.authenticate(github_token)
 
-        if self.options.token is None and C.GALAXY_TOKEN is None:
+        if self.options.token is None and runtime.GALAXY_TOKEN is None:
             # Remove the token we created
             login.remove_github_token()
 
@@ -714,10 +716,10 @@ class GalaxyCLI(cli.CLI):
 
         colors = {
             'INFO': 'normal',
-            'WARNING': C.COLOR_WARN,
-            'ERROR': C.COLOR_ERROR,
-            'SUCCESS': C.COLOR_OK,
-            'FAILED': C.COLOR_ERROR,
+            'WARNING': runtime.COLOR_WARN,
+            'ERROR': runtime.COLOR_ERROR,
+            'SUCCESS': runtime.COLOR_OK,
+            'FAILED': runtime.COLOR_ERROR,
         }
 
         if len(self.args) < 2:
@@ -736,11 +738,11 @@ class GalaxyCLI(cli.CLI):
                 # found multiple roles associated with github_user/github_repo
                 display.display("WARNING: More than one Galaxy role associated with Github repo %s/%s." % (github_user, github_repo),
                                 color='yellow')
-                display.display("The following Galaxy roles are being updated:" + u'\n', color=C.COLOR_CHANGED)
+                display.display("The following Galaxy roles are being updated:" + u'\n', color=runtime.COLOR_CHANGED)
                 for t in task:
-                    display.display('%s.%s' % (t['summary_fields']['role']['namespace'], t['summary_fields']['role']['name']), color=C.COLOR_CHANGED)
+                    display.display('%s.%s' % (t['summary_fields']['role']['namespace'], t['summary_fields']['role']['name']), color=runtime.COLOR_CHANGED)
                 display.display(u'\nTo properly namespace this role, remove each of the above and re-import %s/%s from scratch' % (github_user, github_repo),
-                                color=C.COLOR_CHANGED)
+                                color=runtime.COLOR_CHANGED)
                 return 0
             # found a single role as expected
             display.display("Successfully submitted import request %d" % task[0]['id'])
@@ -775,17 +777,17 @@ class GalaxyCLI(cli.CLI):
                 # None found
                 display.display("No integrations found.")
                 return 0
-            display.display(u'\n' + "ID         Source     Repo", color=C.COLOR_OK)
-            display.display("---------- ---------- ----------", color=C.COLOR_OK)
+            display.display(u'\n' + "ID         Source     Repo", color=runtime.COLOR_OK)
+            display.display("---------- ---------- ----------", color=runtime.COLOR_OK)
             for secret in secrets:
                 display.display("%-10s %-10s %s/%s" % (secret['id'], secret['source'], secret['github_user'],
-                                                       secret['github_repo']), color=C.COLOR_OK)
+                                                       secret['github_repo']), color=runtime.COLOR_OK)
             return 0
 
         if self.options.remove_id:
             # Remove a secret
             self.api.remove_secret(self.options.remove_id)
-            display.display("Secret removed. Integrations using this secret will not longer work.", color=C.COLOR_OK)
+            display.display("Secret removed. Integrations using this secret will not longer work.", color=runtime.COLOR_OK)
             return 0
 
         if len(self.args) < 4:
