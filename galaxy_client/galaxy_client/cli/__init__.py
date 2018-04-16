@@ -36,6 +36,7 @@ import galaxy_client
 
 from galaxy_client import exceptions
 from galaxy_client.compat import six
+from galaxy_client.config import defaults
 from galaxy_client.config import runtime
 from galaxy_client.release import __version__
 from galaxy_client.utils.path import unfrackpath
@@ -245,12 +246,12 @@ class CLI(six.with_metaclass(ABCMeta, object)):
 
         # base opts
         parser = SortedOptParser(usage, version=CLI.version("%prog"), description=desc, epilog=epilog)
-        parser.add_option('-v', '--verbose', dest='verbosity', default=runtime.DEFAULT_VERBOSITY, action="count",
+        parser.add_option('-v', '--verbose', dest='verbosity', default=defaults.DEFAULT_VERBOSITY, action="count",
                           help="verbose mode (-vvv for more, -vvvv to enable connection debugging)")
 
         if module_opts:
             parser.add_option('-M', '--module-path', dest='module_path', default=None,
-                              help="prepend colon-separated path(s) to module library (default=%s)" % runtime.DEFAULT_MODULE_PATH,
+                              help="prepend colon-separated path(s) to module library (default=%s)" % defaults.DEFAULT_MODULE_PATH,
                               action="callback", callback=CLI.unfrack_paths, type='str')
         if runtask_opts:
             parser.add_option('-e', '--extra-vars', dest="extra_vars", action="append",
@@ -295,14 +296,14 @@ class CLI(six.with_metaclass(ABCMeta, object)):
         if gitinfo:
             result = result + " {0}".format(gitinfo)
         result += "\n  config file = %s" % runtime.CONFIG_FILE
-        if runtime.DEFAULT_MODULE_PATH is None:
+        if defaults.DEFAULT_MODULE_PATH is None:
             cpath = "Default w/o overrides"
         else:
-            cpath = runtime.DEFAULT_MODULE_PATH
-        if runtime.DEFAULT_CONTENT_PATH is None:
+            cpath = defaults.DEFAULT_MODULE_PATH
+        if defaults.DEFAULT_CONTENT_PATH is None:
             conpath = "Default w/o overrides"
         else:
-            conpath = runtime.DEFAULT_CONTENT_PATH
+            conpath = defaults.DEFAULT_CONTENT_PATH
 
         result = result + "\n  configured module search path = %s" % cpath
         result = result + "\n  configured galaxy content search path = %s" % conpath
