@@ -37,8 +37,6 @@ import shutil
 import sys
 import traceback
 
-#from ansible.errors import AnsibleError, AnsibleOptionsError, AnsibleParserError
-# from ansible.module_utils._text import to_text
 from galaxy_client.config import defaults
 from galaxy_client import exceptions
 from galaxy_client.utils.text import to_text
@@ -90,6 +88,7 @@ if __name__ == '__main__':
 
     cli = GalaxyCLI(args)
 
+    exit_code = 1
     try:
         cli.parse
     except exceptions.CliOptionsError as e:
@@ -97,12 +96,18 @@ if __name__ == '__main__':
         # FIXME: logging?
         display.error(to_text(e), wrap_text=False)
         exit_code = 5
+        raise
+        sys.exit(exit_code)
+    finally:
+        # Remove ansible tmpdir
+        shutil.rmtree(defaults.DEFAULT_LOCAL_TMP, True)
 
     try:
         exit_code = cli.run()
     except exceptions.ParserError as e:
         display.error(to_text(e), wrap_text=False)
         exit_code = 4
+        raise
 # TQM takes care of these, but leaving comment to reserve the exit codes
 #    except AnsibleHostUnreachable as e:
 #        display.error(str(e))
@@ -113,9 +118,11 @@ if __name__ == '__main__':
     except exceptions.GalaxyClientError as e:
         display.error(to_text(e), wrap_text=False)
         exit_code = 1
+        raise
     except KeyboardInterrupt:
         display.error("User interrupted execution")
         exit_code = 99
+        raise
     # FIXME: replace with except_handler
     except Exception as e:
         # if C.DEFAULT_DEBUG:
@@ -136,6 +143,7 @@ if __name__ == '__main__':
             log_only = True
         display.display(u"the full traceback was:\n\n%s" % to_text(traceback.format_exc()), log_only=log_only)
         exit_code = 250
+        raise
     finally:
         # Remove ansible tmpdir
         shutil.rmtree(defaults.DEFAULT_LOCAL_TMP, True)

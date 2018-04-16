@@ -162,7 +162,8 @@ class CLI(six.with_metaclass(ABCMeta, object)):
         running an Ansible command.
         """
 
-        display.vv(to_text(self.parser.get_version()))
+        # FIXME: why is self.parser none?
+        # display.vv(to_text(self.parser.get_version()))
 
         if runtime.CONFIG_FILE:
             display.v(u"Using %s as config file" % to_text(runtime.CONFIG_FILE))
