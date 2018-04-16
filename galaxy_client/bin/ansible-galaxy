@@ -87,10 +87,9 @@ if __name__ == '__main__':
         exit_code = 6
 
     cli = GalaxyCLI(args)
-
     exit_code = 1
     try:
-        cli.parse
+        cli.parse()
     except exceptions.CliOptionsError as e:
         cli.parser.print_help()
         # FIXME: logging?
