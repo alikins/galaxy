@@ -31,7 +31,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 shared_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
-default_log_format = '%s : %s' % (shared_log_format, '%(message)s')
+default_log_format = shared_log_format + ' : ' + '%(message)s'
 
 sql_log_format = shared_log_format + ': ====== begin ======\n%(sql)s\n====== end ======'
 
@@ -83,7 +83,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
-            'filters': ['require_debug_true'],
+            # 'filters': ['require_debug_true'],
         },
         'import_task': {
             'level': 'DEBUG',
@@ -123,7 +123,6 @@ LOGGING = {
             # 'propagate': True,
         },
         'django.request': {
-            # 'handlers': ['mail_admins'],
             'handlers': ['console'],
             # 'level': 'INFO',
             'level': 'DEBUG',
@@ -136,21 +135,26 @@ LOGGING = {
         },
         'django.db': {
             'handlers': ['django_db_file'],
-            # 'level': 'INFO',
-            'level': 'DEBUG',
+            'level': 'INFO',
+            # 'level': 'DEBUG',
             'propagate': False,
         },
         'django.db.backends': {
             'handlers': ['django_db_file'],
-            # 'level': 'INFO',
-            'level': 'DEBUG',
+            'level': 'INFO',
+            # 'level': 'DEBUG',
             'propagate': False,
         },
         'django.server': {
             'handlers': ['django_server_file'],
             # 'level': 'INFO',
             'level': 'DEBUG',
-            'propagate': False,
+            # 'propagate': False,
+        },
+        'galaxy': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
         'galaxy.api': {
             'handlers': ['console'],
