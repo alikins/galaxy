@@ -30,6 +30,191 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+shared_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
+default_log_format = '%s : %s' % (shared_log_format, '%(message)s')
+
+sql_log_format = shared_log_format + ': ====== begin ======\n%(sql)s\n====== end ======'
+
+
+# sql_log_format = '[%(asctime)s %(levelname)s] %(name)s %(sql)s'
+
+LOGGING = {
+    'version': 1,
+
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'verbose': {
+            'format': default_log_format,
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s',
+        },
+        'django_server': {
+            '()': 'django.utils.log.ServerFormatter',
+            'format': '[%(server_time)s] %(message)s',
+        },
+        'django_db_sql': {
+            '()': 'galaxy.common.logutils.DjangoDbSqlFormatter',
+            # 'format': shared_log_format,
+            'format': sql_log_format,
+        }
+    },
+
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse'
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'django_db_sql_celery_filter': {
+            '()': 'galaxy.common.logutils.DjangoDbSqlCeleryFilter',
+        }
+    },
+
+    'handlers': {
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'class': 'django.utils.log.AdminEmailHandler'
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+            'filters': ['require_debug_true'],
+        },
+        'import_task': {
+            'level': 'DEBUG',
+            'class': 'galaxy.common.logutils.ImportTaskHandler',
+            'formatter': 'simple',
+            # 'formatter': 'verbose',
+        },
+        'django_server_console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'django_server',
+        },
+        'django_server_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/django_server.log',
+            'formatter': 'django_server',
+            # 'filters': ['require_debug_true'],
+        },
+        'django_db_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/django_db.log',
+            'formatter': 'django_db_sql',
+            'filters': ['django_db_sql_celery_filter'],
+            # 'formatter': 'verbose',
+            # 'filters': ['require_debug_true'],
+        },
+    },
+
+    'loggers': {
+        # root logger
+        '': {
+            'handlers': ['console'],
+            # 'level': 'INFO',
+            'level': 'DEBUG',
+            # 'propagate': True,
+        },
+        'django.request': {
+            # 'handlers': ['mail_admins'],
+            'handlers': ['console'],
+            # 'level': 'INFO',
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.db': {
+            'handlers': ['django_db_file'],
+            # 'level': 'INFO',
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['django_db_file'],
+            # 'level': 'INFO',
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['django_server_file'],
+            # 'level': 'INFO',
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'galaxy.api': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'galaxy.api.permissions': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            # 'level': 'DEBUG',
+            'propagate': True,
+        },
+        'galaxy.api.access': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            # 'level': 'DEBUG',
+            'propagate': True,
+        },
+        'galaxy.api.throttling': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'galaxy.accounts': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'galaxy.main': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'galaxy.models': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'galaxy.worker': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'galaxy.worker.tasks.import_repository': {
+            'handlers': ['import_task'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'allauth': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'filters': ['django_db_sql_celery_filter'],
+        },
+        'celery.beat': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        }
+    }
+}
 # Application definition
 # ---------------------------------------------------------
 
@@ -41,6 +226,11 @@ MIDDLEWARE += [  # noqa: F405
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
+# https://github.com/celery/celery/issues/4326
+#CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+#CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
+#CELERY_WORKER_LOG_FORMAT = shared_log_format
+CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
 # Database
 # ---------------------------------------------------------
 
