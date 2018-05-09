@@ -62,3 +62,7 @@ jog
 prometheus_client
 django-prometheus
 influxdb
+
+# alikins dev
+logging_tree
+sqlparse

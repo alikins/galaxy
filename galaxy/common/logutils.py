@@ -18,6 +18,7 @@
 from __future__ import absolute_import
 
 import logging
+import sqlparse
 
 from galaxy import constants
 
@@ -81,3 +82,37 @@ class ImportTaskHandler(logging.Handler):
             rule_desc=lint['rule_desc'],
             content_name=lint['content_name'],
         )
+
+
+class DjangoDbSqlCeleryFilter(object):
+    def filter(self, record):
+        sql = getattr(record, 'sql', None)
+        if not sql:
+            return 1
+        if 'djcelery_periodictask' in sql:
+            return 0
+
+        return 1
+
+
+class DjangoDbSqlFormatter(logging.Formatter):
+    '''pretty print django.db sql'''
+
+    def __init__(self, fmt=None, datefmt=None, options=None):
+        super(DjangoDbSqlFormatter, self).__init__(fmt=fmt, datefmt=datefmt)
+
+        self.options = options or {'reindent': True,
+                                   'keyword_case': 'upper'}
+
+    def format(self, record):
+        pretty_sql = sqlparse.format(record.sql,
+                                     **self.options)
+
+        record.sql = pretty_sql
+        # import pprint
+        # return '\n__dict__=%s\n' % pprint.pformat(record.__dict__)
+        return super(DjangoDbSqlFormatter, self).format(record)
+
+    def __repr__(self):
+        buf = 'DjangoDbSqlFormatter(fmt="%s", options=%s)' % (self._fmt, self.options)
+        return buf
