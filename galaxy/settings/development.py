@@ -31,7 +31,9 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 shared_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
-default_log_format = shared_log_format + ' : ' + '%(message)s'
+
+# default_log_format = shared_log_format + ' : ' + '%(message)s'
+default_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
 
 sql_log_format = shared_log_format + ': ====== begin ======\n%(sql)s\n====== end ======'
 
@@ -45,7 +47,8 @@ LOGGING = {
 
     'formatters': {
         'verbose': {
-            'format': default_log_format,
+            # 'format': default_log_format,
+            'format': '%(message)s'
         },
         'simple': {
             'format': '%(levelname)s %(message)s',
@@ -54,11 +57,11 @@ LOGGING = {
             '()': 'django.utils.log.ServerFormatter',
             'format': '[%(server_time)s] %(message)s',
         },
-        'django_db_sql': {
-            '()': 'galaxy.common.logutils.DjangoDbSqlFormatter',
+        #'django_db_sql': {
+        #    '()': 'galaxy.common.logutils.DjangoDbSqlFormatter',
             # 'format': shared_log_format,
-            'format': sql_log_format,
-        }
+            # 'format': sql_log_format,
+        #}
     },
 
     'filters': {
@@ -83,6 +86,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'stream': 'ext://sys.stdout',
             # 'filters': ['require_debug_true'],
         },
         'import_task': {
@@ -107,8 +111,8 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/django_db.log',
-            'formatter': 'django_db_sql',
-            'filters': ['django_db_sql_celery_filter'],
+            # 'formatter': 'django_db_sql',
+            # 'filters': ['django_db_sql_celery_filter'],
             # 'formatter': 'verbose',
             # 'filters': ['require_debug_true'],
         },
@@ -121,6 +125,7 @@ LOGGING = {
             # 'level': 'INFO',
             'level': 'DEBUG',
             # 'propagate': True,
+            # 'filters': ['require_debug_true'],
         },
         'django.request': {
             'handlers': ['console'],
@@ -211,7 +216,7 @@ LOGGING = {
         'celery': {
             'handlers': ['console'],
             'level': 'DEBUG',
-            'filters': ['django_db_sql_celery_filter'],
+            # 'filters': ['django_db_sql_celery_filter'],
         },
         'celery.beat': {
             'handlers': ['console'],
