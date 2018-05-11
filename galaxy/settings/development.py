@@ -30,14 +30,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-shared_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)-0.1s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
+shared_log_format = '[%(asctime)s %(process)5d:%(threadName)s %(levelname)-0.1s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
 
 # default_log_format = shared_log_format + ' : ' + '%(message)s'
 default_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)-0.1s] %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
 
 sql_log_format = shared_log_format + ': ====== begin ======\n%(sql)s\n====== end ======'
 
-importer_log_format = '[%(asctime)s %(process)05d %(levelname)-0.1s] task:%(task_id)-0.4s %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
+importer_log_format = '[%(asctime)s %(process)5d %(levelname)-0.1s] task:%(task_id)-0.4s %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
 
 
 # sql_log_format = '[%(asctime)s %(levelname)s] %(name)s %(sql)s'
@@ -63,11 +63,11 @@ LOGGING = {
             '()': 'django.utils.log.ServerFormatter',
             'format': '[%(server_time)s] %(message)s',
         },
-        #'django_db_sql': {
-        #    '()': 'galaxy.common.logutils.DjangoDbSqlFormatter',
+        'django_db_sql': {
+            '()': 'galaxy.common.logutils.DjangoDbSqlFormatter',
             # 'format': shared_log_format,
-            # 'format': sql_log_format,
-        #}
+            'format': sql_log_format,
+        }
     },
 
     'filters': {
@@ -126,8 +126,8 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/django_db.log',
-            # 'formatter': 'django_db_sql',
-            # 'filters': ['django_db_sql_celery_filter'],
+            'formatter': 'django_db_sql',
+            'filters': ['django_db_sql_celery_filter'],
             # 'formatter': 'verbose',
             # 'filters': ['require_debug_true'],
         },
@@ -161,8 +161,8 @@ LOGGING = {
         },
         'django.db.backends': {
             'handlers': ['django_db_file'],
-            'level': 'INFO',
-            # 'level': 'DEBUG',
+            # 'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': False,
         },
         'django.server': {
@@ -251,9 +251,9 @@ MIDDLEWARE += [  # noqa: F405
 ]
 
 # https://github.com/celery/celery/issues/4326
-#CELERY_WORKER_HIJACK_ROOT_LOGGER = False
-#CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
-#CELERY_WORKER_LOG_FORMAT = shared_log_format
+# CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+# CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
+# CELERY_WORKER_LOG_FORMAT = shared_log_format
 CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
 # Database
 # ---------------------------------------------------------
