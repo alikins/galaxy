@@ -30,12 +30,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-shared_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
+shared_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)-0.1s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
 
 # default_log_format = shared_log_format + ' : ' + '%(message)s'
-default_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
+default_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)-0.1s] %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
 
 sql_log_format = shared_log_format + ': ====== begin ======\n%(sql)s\n====== end ======'
+
+importer_log_format = '[%(asctime)s %(process)05d %(levelname)-0.1s] task:%(task_id)-0.4s %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
 
 
 # sql_log_format = '[%(asctime)s %(levelname)s] %(name)s %(sql)s'
@@ -47,8 +49,12 @@ LOGGING = {
 
     'formatters': {
         'verbose': {
-            # 'format': default_log_format,
-            'format': '%(message)s'
+            'format': default_log_format,
+            # 'format': '%(message)s'
+        },
+        'verbose_importer': {
+            'format': importer_log_format,
+            # 'format': '%(message)s'
         },
         'simple': {
             'format': '%(levelname)s %(message)s',
@@ -94,6 +100,15 @@ LOGGING = {
             'class': 'galaxy.common.logutils.ImportTaskHandler',
             'formatter': 'simple',
             # 'formatter': 'verbose',
+        },
+        # not confident logging to a file will work for celery tasks
+        # but hoping they do some queue/event handler stuff internally...
+        'import_task_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/galaxy_import.log',
+            # 'formatter': 'simple',
+            'formatter': 'verbose_importer',
         },
         'django_server_console': {
             'level': 'DEBUG',
@@ -204,7 +219,7 @@ LOGGING = {
             'propagate': True,
         },
         'galaxy.worker.tasks.import_repository': {
-            'handlers': ['import_task'],
+            'handlers': ['import_task', 'import_task_file', 'console'],
             'level': 'DEBUG',
             'propagate': False,
         },
