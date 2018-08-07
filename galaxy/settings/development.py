@@ -96,8 +96,8 @@ LOGGING = {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-            # 'formatter': 'json',
+            # 'formatter': 'verbose',
+            'formatter': 'json',
             'filters': ['request_id'],
             # 'filters': ['require_debug_true'],
             # 'filters': ['require_debug_false'],
