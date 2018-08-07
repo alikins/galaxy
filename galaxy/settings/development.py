@@ -30,14 +30,16 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-shared_log_format = '[%(asctime)s %(process)5d:%(threadName)s %(levelname)-0.1s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
+# https://github.com/dabapps/django-log-request-id
+LOG_REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
+GENERATE_REQUEST_ID_IF_NOT_IN_HEADER = True
+REQUEST_ID_RESPONSE_HEADER = "X-GALAXY-REQUEST-ID"
+# LOG_REQUESTS = True
 
-# default_log_format = shared_log_format + ' : ' + '%(message)s'
-default_log_format = '[%(asctime)s %(process)d:%(threadName)s %(levelname)-0.1s] %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
+shared_log_format = '[%(asctime)s %(request_id)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
+default_log_format = '%s : %s' % (shared_log_format, '%(message)s')
 
 sql_log_format = shared_log_format + ': ====== begin ======\n%(sql)s\n====== end ======'
-
-importer_log_format = '[%(asctime)s %(process)5d %(levelname)-0.1s] task:%(task_id)-0.4s %(name)s %(filename)s %(funcName)s:%(lineno)d : %(message)s'
 
 
 # sql_log_format = '[%(asctime)s %(levelname)s] %(name)s %(sql)s'
@@ -50,24 +52,24 @@ LOGGING = {
     'formatters': {
         'verbose': {
             'format': default_log_format,
-            # 'format': '%(message)s'
-        },
-        'verbose_importer': {
-            'format': importer_log_format,
-            # 'format': '%(message)s'
         },
         'simple': {
             'format': '%(levelname)s %(message)s',
         },
+        'json': {
+            '()': 'jog.JogFormatter',
+            'format': default_log_format,
+        },
         'django_server': {
             '()': 'django.utils.log.ServerFormatter',
-            'format': '[%(server_time)s] %(message)s',
+            'format': '[%(server_time)s] %(message)s - %(request_id)s',
         },
         'django_db_sql': {
             '()': 'galaxy.common.logutils.DjangoDbSqlFormatter',
             # 'format': shared_log_format,
             'format': sql_log_format,
         }
+
     },
 
     'filters': {
@@ -77,9 +79,12 @@ LOGGING = {
         'require_debug_true': {
             '()': 'django.utils.log.RequireDebugTrue',
         },
+        'request_id': {
+            '()': 'log_request_id.filters.RequestIDFilter'
+        },
         'django_db_sql_celery_filter': {
             '()': 'galaxy.common.logutils.DjangoDbSqlCeleryFilter',
-        }
+        },
     },
 
     'handlers': {
@@ -92,8 +97,10 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
-            'stream': 'ext://sys.stdout',
+            # 'formatter': 'json',
+            'filters': ['request_id'],
             # 'filters': ['require_debug_true'],
+            # 'filters': ['require_debug_false'],
         },
         'import_task': {
             'level': 'DEBUG',
@@ -101,25 +108,18 @@ LOGGING = {
             'formatter': 'simple',
             # 'formatter': 'verbose',
         },
-        # not confident logging to a file will work for celery tasks
-        # but hoping they do some queue/event handler stuff internally...
-        'import_task_file': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.WatchedFileHandler',
-            'filename': '/galaxy/galaxy_import.log',
-            # 'formatter': 'simple',
-            'formatter': 'verbose_importer',
-        },
         'django_server_console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'django_server',
+            'filters': ['request_id'],
         },
         'django_server_file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/django_server.log',
             'formatter': 'django_server',
+            'filters': ['request_id'],
             # 'filters': ['require_debug_true'],
         },
         'django_db_file': {
@@ -127,9 +127,11 @@ LOGGING = {
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/django_db.log',
             'formatter': 'django_db_sql',
-            'filters': ['django_db_sql_celery_filter'],
+            # 'filters': ['django_db_sql_celery_filter'],
             # 'formatter': 'verbose',
-            # 'filters': ['require_debug_true'],
+            'filters': ['django_db_sql_celery_filter',
+                        'require_debug_true',
+                        'request_id'],
         },
     },
 
@@ -140,9 +142,9 @@ LOGGING = {
             # 'level': 'INFO',
             'level': 'DEBUG',
             # 'propagate': True,
-            # 'filters': ['require_debug_true'],
         },
         'django.request': {
+            # 'handlers': ['mail_admins'],
             'handlers': ['console'],
             # 'level': 'INFO',
             'level': 'DEBUG',
@@ -154,27 +156,25 @@ LOGGING = {
             'propagate': True,
         },
         'django.db': {
-            'handlers': ['django_db_file'],
-            'level': 'INFO',
-            # 'level': 'DEBUG',
+            # 'handlers': ['django_db_file'],
+            'handlers': ['console'],
+            # 'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': False,
         },
         'django.db.backends': {
             'handlers': ['django_db_file'],
+            # 'handlers': ['console'],
             # 'level': 'INFO',
-            'level': 'DEBUG',
+            # 'level': 'DEBUG',
             'propagate': False,
+            # 'propagate': True,
         },
         'django.server': {
-            'handlers': ['django_server_file'],
+            'handlers': ['console', 'django_server_file'],
             # 'level': 'INFO',
             'level': 'DEBUG',
             # 'propagate': False,
-        },
-        'galaxy': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
         },
         'galaxy.api': {
             'handlers': ['console'],
@@ -189,8 +189,8 @@ LOGGING = {
         },
         'galaxy.api.access': {
             'handlers': ['console'],
-            'level': 'INFO',
-            # 'level': 'DEBUG',
+            # 'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': True,
         },
         'galaxy.api.throttling': {
@@ -219,7 +219,7 @@ LOGGING = {
             'propagate': True,
         },
         'galaxy.worker.tasks.import_repository': {
-            'handlers': ['import_task', 'import_task_file', 'console'],
+            'handlers': ['import_task'],
             'level': 'DEBUG',
             'propagate': False,
         },
@@ -236,14 +236,19 @@ LOGGING = {
         'celery.beat': {
             'handlers': ['console'],
             'level': 'INFO',
-        }
+        },
+        'github': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
     }
 }
 # Application definition
 # ---------------------------------------------------------
 
 INSTALLED_APPS += (  # noqa: F405
-    'debug_toolbar',
+#     'autofixture',
+#    'debug_toolbar',
 )
 
 MIDDLEWARE += [  # noqa: F405
@@ -251,22 +256,24 @@ MIDDLEWARE += [  # noqa: F405
 ]
 
 # https://github.com/celery/celery/issues/4326
-# CELERY_WORKER_HIJACK_ROOT_LOGGER = False
-# CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
-# CELERY_WORKER_LOG_FORMAT = shared_log_format
+#CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+#CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
+#CELERY_WORKER_LOG_FORMAT = shared_log_format
 CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
 # Database
 # ---------------------------------------------------------
 
 # Define GALAXY_DB_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
-DATABASES = {
-    'default': dj_database_url.config(
-        env='GALAXY_DB_URL', conn_max_age=None
-    )
-}
+DATABASES = {'default': dj_database_url.config(env='GALAXY_DB_URL', conn_max_age=None)}
 
 # Create default alias for worker logging
 DATABASES['logging'] = DATABASES['default'].copy()
+
+# Set the test database name
+DATABASES['default']['TEST'] = {'NAME': 'test_galaxy'}
+
+# Cache
+# ---------------------------------------------------------
 
 # Email settings
 # ---------------------------------------------------------
@@ -282,7 +289,7 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'var', 'email')  # noqa: F405
 # Debug Toolbar
 # ---------------------------------------------------------
 
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
+# DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 # Celery settings
 # ---------------------------------------------------------
