@@ -247,8 +247,7 @@ LOGGING = {
 # ---------------------------------------------------------
 
 INSTALLED_APPS += (  # noqa: F405
-#     'autofixture',
-#    'debug_toolbar',
+    'debug_toolbar',
 )
 
 MIDDLEWARE += [  # noqa: F405
@@ -256,24 +255,23 @@ MIDDLEWARE += [  # noqa: F405
 ]
 
 # https://github.com/celery/celery/issues/4326
-#CELERY_WORKER_HIJACK_ROOT_LOGGER = False
-#CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
-#CELERY_WORKER_LOG_FORMAT = shared_log_format
-CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
+# CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+# CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
+# CELERY_WORKER_LOG_FORMAT = shared_log_format
+# CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
+
 # Database
 # ---------------------------------------------------------
 
 # Define GALAXY_DB_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
-DATABASES = {'default': dj_database_url.config(env='GALAXY_DB_URL', conn_max_age=None)}
+DATABASES = {
+    'default': dj_database_url.config(
+        env='GALAXY_DB_URL', conn_max_age=None
+    )
+}
 
 # Create default alias for worker logging
 DATABASES['logging'] = DATABASES['default'].copy()
-
-# Set the test database name
-DATABASES['default']['TEST'] = {'NAME': 'test_galaxy'}
-
-# Cache
-# ---------------------------------------------------------
 
 # Email settings
 # ---------------------------------------------------------
@@ -289,7 +287,7 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'var', 'email')  # noqa: F405
 # Debug Toolbar
 # ---------------------------------------------------------
 
-# DEBUG_TOOLBAR_PATCH_SETTINGS = False
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 # Celery settings
 # ---------------------------------------------------------
