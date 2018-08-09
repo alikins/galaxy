@@ -34,7 +34,8 @@ ALLOWED_HOSTS = ['*']
 LOG_REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
 GENERATE_REQUEST_ID_IF_NOT_IN_HEADER = True
 REQUEST_ID_RESPONSE_HEADER = "X-GALAXY-REQUEST-ID"
-LOG_REQUESTS = True
+GALAXY_LOG_REQUESTS = True
+LOG_REQUESTS = False
 
 shared_log_format = '[%(asctime)s %(request_id)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
 default_log_format = '%s : %s' % (shared_log_format, '%(message)s')
@@ -72,6 +73,22 @@ LOGGING = {
         'pprint': {
             '()': 'galaxy.common.logutils.PPrintFormatter',
         },
+        'color_verbose': {
+            '()': 'color_debug.color_debug.ColorFormatter',
+            'format': '[%(asctime)s %(levelname)-0.1s] %(name)s %(funcName)s:%(lineno)-3d - %(message)s - %(request_id)s',
+            # default_color_by_attr: 'module'
+            'default_color_by_attr': 'request_id',
+            # default_color_by_attr: msg
+            'auto_color': True,
+            'color_groups': [
+                ['process', ['processName']],
+                ['levelname', ['levelname']],
+                ['funcName', ['lineno']],
+            ]
+            # messages logged with the same 'msg' share a color
+            #  - ['msg', ['message']]
+            #  - ['name', ['name', 'levelname']]
+        },
 
     },
 
@@ -101,7 +118,8 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             # 'formatter': 'verbose',
             # 'formatter': 'json',
-            'formatter': 'pprint',
+            # 'formatter': 'pprint',
+            'formatter': 'color_verbose',
             'filters': ['request_id'],
             # 'filters': ['require_debug_true'],
             # 'filters': ['require_debug_false'],
@@ -111,7 +129,8 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             # 'formatter': 'verbose',
             # 'formatter': 'json',
-            'formatter': 'pprint',
+            # 'formatter': 'pprint',
+            'formatter': 'color_verbose',
             'filters': ['request_id'],
             # 'filters': ['require_debug_true'],
             # 'filters': ['require_debug_false'],
@@ -147,6 +166,15 @@ LOGGING = {
                         'require_debug_true',
                         'request_id'],
         },
+#        'django_db_color_file': {
+#            'level': 'DEBUG',
+#            'class': 'logging.handlers.WatchedFileHandler',
+#            'filename': '/galaxy/django_db_color.log',
+#            'formatter': 'color_verbose',
+#            'filters': ['django_db_sql_celery_filter',
+#                        'require_debug_true',
+#                        'request_id'],
+#        }
     },
 
     'loggers': {
@@ -179,7 +207,7 @@ LOGGING = {
         'django.db.backends': {
             'handlers': ['django_db_file'],
             # 'handlers': ['console'],
-            # 'level': 'INFO',
+            'level': 'INFO',
             # 'level': 'DEBUG',
             'propagate': False,
             # 'propagate': True,
