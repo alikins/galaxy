@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ['*']
 LOG_REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
 GENERATE_REQUEST_ID_IF_NOT_IN_HEADER = True
 REQUEST_ID_RESPONSE_HEADER = "X-GALAXY-REQUEST-ID"
-# LOG_REQUESTS = True
+LOG_REQUESTS = True
 
 shared_log_format = '[%(asctime)s %(request_id)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
 default_log_format = '%s : %s' % (shared_log_format, '%(message)s')
@@ -68,7 +68,10 @@ LOGGING = {
             '()': 'galaxy.common.logutils.DjangoDbSqlFormatter',
             # 'format': shared_log_format,
             'format': sql_log_format,
-        }
+        },
+        'pprint': {
+            '()': 'galaxy.common.logutils.PPrintFormatter',
+        },
 
     },
 
@@ -97,7 +100,18 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             # 'formatter': 'verbose',
-            'formatter': 'json',
+            # 'formatter': 'json',
+            'formatter': 'pprint',
+            'filters': ['request_id'],
+            # 'filters': ['require_debug_true'],
+            # 'filters': ['require_debug_false'],
+        },
+        'celery_console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            # 'formatter': 'verbose',
+            # 'formatter': 'json',
+            'formatter': 'pprint',
             'filters': ['request_id'],
             # 'filters': ['require_debug_true'],
             # 'filters': ['require_debug_false'],
@@ -214,7 +228,7 @@ LOGGING = {
             'propagate': True,
         },
         'galaxy.worker': {
-            'handlers': ['console'],
+            'handlers': ['console', 'celery_console'],
             'level': 'DEBUG',
             'propagate': True,
         },
@@ -223,18 +237,28 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'galaxy.middleware.log_request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        # if LOG_REQUESTS=True, then he django-log-request-id package
+        # logs request details to 'log_request_id.middleware'
+        'log_request_id.middleware': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'allauth': {
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'celery': {
-            'handlers': ['console'],
+            'handlers': ['celery_console'],
             'level': 'DEBUG',
             # 'filters': ['django_db_sql_celery_filter'],
         },
         'celery.beat': {
-            'handlers': ['console'],
+            'handlers': ['celery_console'],
             'level': 'INFO',
         },
         'github': {
@@ -255,10 +279,10 @@ MIDDLEWARE += [  # noqa: F405
 ]
 
 # https://github.com/celery/celery/issues/4326
-# CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 # CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
-# CELERY_WORKER_LOG_FORMAT = shared_log_format
-# CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
+CELERY_WORKER_LOG_FORMAT = shared_log_format
+CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
 
 # Database
 # ---------------------------------------------------------

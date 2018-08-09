@@ -19,6 +19,7 @@ from __future__ import absolute_import
 
 import logging
 import sqlparse
+import pprint
 
 from galaxy import constants
 
@@ -82,6 +83,26 @@ class ImportTaskHandler(logging.Handler):
             rule_desc=lint['rule_desc'],
             content_name=lint['content_name'],
         )
+
+
+class PPrintFormatter(logging.Formatter):
+    def __init__(self, fmt=None, datefmt=None, options=None, indent=1):
+        super(PPrintFormatter, self).__init__(fmt=fmt, datefmt=datefmt)
+
+        self.indent = indent or options.get('indent') or 1
+
+    def format(self, record):
+        res_dict = record.__dict__.copy()
+        message = record.getMessage()
+        res_dict['message'] = message
+        res = pprint.pformat(res_dict, indent=self.indent)
+        return res
+
+    def __repr__(self):
+        buf = '%s(fmt="%s", options=%s, indent=%s)' % (self.__class__.__name__,
+                                                       self._fmt, self.options,
+                                                       self.indent)
+        return buf
 
 
 class DjangoDbSqlCeleryFilter(object):
