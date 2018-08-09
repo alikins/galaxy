@@ -1,17 +1,22 @@
 
 import logging
 
+from django.conf import settings
+
 try:
     from django.utils.deprecation import MiddlewareMixin
 except ImportError:
     MiddlewareMixin = object
 
 log = logging.getLogger(__name__)
+LOG_REQUESTS_SETTING = 'GALAXY_LOG_REQUESTS'
 
 
 class LogRequestMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
 
+        if not getattr(settings, LOG_REQUESTS_SETTING, False):
+            return response
         # Don't log favicon
         if 'favicon' in request.path:
             return response
