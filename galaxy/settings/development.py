@@ -210,7 +210,10 @@ LOGGING = {
             'propagate': True,
         },
         'django': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
+            'handlers': ['django_server_request_file',
+                         'django_server_request_debug_file',
+                         'console'],
             'level': 'DEBUG',
             'propagate': True,
         },
@@ -229,14 +232,14 @@ LOGGING = {
             'propagate': False,
             # 'propagate': True,
         },
-        'django.server': {
-            'handlers': ['django_server_request_file',
-                         'django_server_request_debug_file',
-                         'console'],
+#        'django.server': {
+#            'handlers': ['django_server_request_file',
+#                         'django_server_request_debug_file',
+#                         'console'],
             # 'level': 'INFO',
-            'level': 'DEBUG',
+#            'level': 'DEBUG',
             # 'propagate': False,
-        },
+#        },
         'galaxy.api': {
             'handlers': ['console'],
             'level': 'DEBUG',
