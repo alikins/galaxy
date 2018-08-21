@@ -72,6 +72,7 @@ LOGGING = {
         },
         'pprint': {
             '()': 'galaxy.common.logutils.PPrintFormatter',
+            'indent': 4,
         },
         'color_verbose': {
             '()': 'color_debug.color_debug.ColorFormatter',
@@ -147,11 +148,27 @@ LOGGING = {
             'formatter': 'django_server',
             'filters': ['request_id'],
         },
-        'django_server_file': {
+        'django_server_request_file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/django_server.log',
             'formatter': 'django_server',
+            'filters': ['request_id'],
+            # 'filters': ['require_debug_true'],
+        },
+        'django_server_request_debug_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/django_debug_server.log',
+            'formatter': 'pprint',
+            'filters': ['request_id'],
+            # 'filters': ['require_debug_true'],
+        },
+        'galaxy_debug_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/galaxy_debug.log',
+            'formatter': 'pprint',
             'filters': ['request_id'],
             # 'filters': ['require_debug_true'],
         },
@@ -213,7 +230,9 @@ LOGGING = {
             # 'propagate': True,
         },
         'django.server': {
-            'handlers': ['console', 'django_server_file'],
+            'handlers': ['django_server_request_file',
+                         'django_server_request_debug_file',
+                         'console'],
             # 'level': 'INFO',
             'level': 'DEBUG',
             # 'propagate': False,
@@ -266,7 +285,7 @@ LOGGING = {
             'propagate': False,
         },
         'galaxy.middleware.log_request': {
-            'handlers': ['console'],
+            'handlers': ['django_server_request_debug_file'],
             'level': 'DEBUG',
         },
         # if LOG_REQUESTS=True, then he django-log-request-id package
