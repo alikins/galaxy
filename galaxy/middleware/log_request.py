@@ -12,6 +12,18 @@ log = logging.getLogger(__name__)
 LOG_REQUESTS_SETTING = 'GALAXY_LOG_REQUESTS'
 
 
+def extra_from_resolver_match(resolver_match):
+    # nested inside 'resolver' key to avoid clobbering 'func', 'args'
+    extra = {'resolver': {}}
+
+    for attr in ('args', 'kwargs', 'url_name',
+                 'app_name', 'app_names', 'namespace',
+                 'namespaces', 'view_name'):
+        extra['resolver'][attr] = getattr(resolver_match, attr, None)
+
+    return extra
+
+
 class LogRequestMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
 
@@ -24,26 +36,87 @@ class LogRequestMiddleware(MiddlewareMixin):
 
         user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
         referer = request.META.get('HTTP_REFERER', '')
+        remote_addr = request.META.get('REMOTE_ADDR', '')
+        server_name = request.META.get('SERVER_NAME', '')
+        server_port = request.META.get('SERVER_PORT', '')
+        query_string = request.META.get('QUERY_STRING', '')
+        content_type = request.META.get('CONTENT_TYPE', '')
+        content_length = request.META.get('CONTENT_LENGTH', '')
 
-        user = getattr(request, 'user', None)
-        user_id = getattr(user, 'pk', None) or getattr(user, 'id', None)
+        cookies_obj = getattr(request, 'COOKIES', {})
+        cookies_dict = dict(cookies_obj.items())
+
+        user_obj = getattr(request, 'user', None)
+        user_name = user_obj.username
+        user_id = getattr(user_obj, 'pk', None) or \
+            getattr(user_obj, 'id', None)
+
+        resolver_extra = extra_from_resolver_match(request.resolver_match)
+
+        query_param_obj = getattr(request, 'GET', {})
+        query_params = query_param_obj.items()
+
+        # To see all query params, even dupes
+        # if query_param_obj:
+        #    for query_param_item in query_param_obj.lists():
+        #        query_params.append(query_param_item)
+
+        extra = {}
+
+        request_extra = {'http_method': request.method,
+                         'http_url_path': request.path,
+                         'http_query_string': query_string,
+                         'http_query_params': query_params,
+                         'http_user_agent': user_agent,
+                         'http_user_name': user_name,
+                         'http_user_id': user_id,
+                         'http_referer': referer,
+                         'http_content_type': content_type,
+                         'http_content_length': content_length,
+                         'http_remote_addr': remote_addr,
+                         'http_server_name': server_name,
+                         'http_server_port': server_port,
+                         # 'http_request_environ': request.environ,
+                         }
+
+        if cookies_dict.get('sessionid'):
+            request_extra['http_session_id'] = cookies_dict['sessionid']
+
+        response_extra = {
+            'http_status_code': response.status_code,
+        }
+
+        accepted_media_type = getattr(response, 'accepted_media_type', '')
+        response_extra['http_accepted_media_type'] = accepted_media_type
+
+        # used_auth = getattr(request, 'successful_authenticator', None)
+        # extra['used_auth'] = used_auth
+        # extra.update(request.META)
+
+        request_extra.update(resolver_extra)
+
+        request_extra['http_get_host'] = request.get_host()
+
+        extra.update(request_extra)
+        extra.update(response_extra)
+
+        # EVERYTHING
+        # extra['http_response_attrs'] = dir(response)
+        # extra['http_request_attrs'] = dir(request)
+        extra['_http_response_dict'] = getattr(response, '__dict__', {})
+        extra['_http_request_dict'] = getattr(request, '__dict__', {})
+        # extra['self_attrs'] = dir(self)
 
         message = 'method=%s path=%s status=%s'
         args = (request.method, request.path, response.status_code)
 
-        if user_id:
+        if user_name:
             message += ' user=%s'
+            args += (user_name,)
+
+        if user_id:
+            message += ' user_id=%s'
             args += (user_id,)
-
-        extra = {'http_method': request.method,
-                 'http_url_path': request.path,
-                 'http_status_code': response.status_code,
-                 'http_user_agent': user_agent,
-                 'http_referer': referer}
-
-        used_auth = getattr(request, 'successful_authenticator', None)
-        extra['used_auth'] = used_auth
-        # extra.update(request.META)
 
         log.info(message, *args, extra=extra)
 
