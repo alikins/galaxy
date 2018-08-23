@@ -51,21 +51,22 @@ def extra_from_resolver_match(resolver_match):
     return resolver_extra
 
 
-META_PREFIXES = ('HTTP_', 'CONTENT_', 'QUERY_', 'REMOTE_', 'REQUEST_', 'SERVER_')
+META_PREFIXES = ('HTTP_', 'CONTENT_', 'QUERY_',
+                 'REMOTE_', 'REQUEST_', 'SERVER_')
 
 
 def extra_from_request(request):
     # TODO: maybe easier to just return the whole META dict as
     #       a subdict in request_extra, possibly with config
     #       excluding things.
-    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
-    referer = request.META.get('HTTP_REFERER', '')
-    remote_addr = request.META.get('REMOTE_ADDR', '')
-    server_name = request.META.get('SERVER_NAME', '')
-    server_port = request.META.get('SERVER_PORT', '')
-    query_string = request.META.get('QUERY_STRING', '')
+    # user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+    # referer = request.META.get('HTTP_REFERER', '')
+    # remote_addr = request.META.get('REMOTE_ADDR', '')
+    # server_name = request.META.get('SERVER_NAME', '')
+    # server_port = request.META.get('SERVER_PORT', '')
+    # query_string = request.META.get('QUERY_STRING', '')
     # content_type = request.META.get('CONTENT_TYPE', '')
-    content_length = request.META.get('CONTENT_LENGTH', '')
+    # content_length = request.META.get('CONTENT_LENGTH', '')
 
     user_obj = getattr(request, 'user', None)
     user_name = getattr(user_obj, 'username', None)
@@ -84,24 +85,24 @@ def extra_from_request(request):
     #        query_params.append(query_param_item)
 
     request_extra = {'scheme': request.scheme,
-                     'method': request.method,
+                     # 'method': request.method,
                      'url_path': request.path,
                      'url_path_info': request.path_info,
                      'url_full_path': request.get_full_path(),
                      # 'url_full_path_info': request.get_full_path_info(),
                      'url_absolute': request.build_absolute_uri(),
-                     'query_string': query_string,
+                     # 'query_string': query_string,
                      'query_params': query_params,
                      'post_parans': post_params,
-                     'user_agent': user_agent,
+                     # 'user_agent': user_agent,
                      'user_name': user_name,
                      'user_id': user_id,
-                     'referer': referer,
+                     # 'referer': referer,
                      # 'http_content_type': content_type,
-                     'content_length': content_length,
-                     'remote_addr': remote_addr,
-                     'server_name': server_name,
-                     'server_port': server_port,
+                     # 'content_length': content_length,
+                     # 'remote_addr': remote_addr,
+                     # 'server_name': server_name,
+                     # 'server_port': server_port,
                      # 'http_request_environ': request.environ,
                      }
 
