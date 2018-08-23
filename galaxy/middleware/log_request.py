@@ -85,14 +85,18 @@ def extra_from_request(request):
 
 class LogRequestMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
-        extra = extra_from_request(request)
+        request_extra = extra_from_request(request)
+        extra = {'request': request_extra}
+
         log.debug('request=%s, view_func=%s, view_args=%s, view_kwargs=%s',
                   request, view_func, view_args, view_kwargs, extra=extra)
 
         return None
 
     def process_exception(self, request, exception):
-        extra = extra_from_request(request)
+        request_extra = extra_from_request(request)
+        extra = {'request': request_extra}
+
         log.debug('process_exception request=%s, exception=%s',
                   request, exception, extra=extra)
         return None
@@ -116,8 +120,11 @@ class LogRequestMiddleware(MiddlewareMixin):
         accepted_media_type = getattr(response, 'accepted_media_type', '')
         response_extra['http_response_media_type'] = accepted_media_type
 
-        extra.update(request_extra)
-        extra.update(response_extra)
+        extra['request'] = request_extra
+        extra['response'] = response_extra
+
+        # extra.update(request_extra)
+        # extra.update(response_extra)
 
         # EVERYTHING
         # extra['http_response_attrs'] = dir(response)
