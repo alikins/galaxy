@@ -14,7 +14,8 @@ LOG_REQUESTS_SETTING = 'GALAXY_LOG_REQUESTS'
 
 def extra_from_resolver_match(resolver_match):
     # nested inside 'resolver' key to avoid clobbering 'func', 'args'
-    extra = {'http_request_resolver': {}}
+    # extra = {'http_request_resolver': {}}
+    resolver_extra = {}
 
     for attr in ('args',
                  'kwargs',
@@ -24,10 +25,10 @@ def extra_from_resolver_match(resolver_match):
                  # 'namespace',
                  'namespaces',
                  'view_name'):
-        extra['http_request_resolver'][attr] = \
+        resolver_extra[attr] = \
             getattr(resolver_match, attr, None)
 
-    return extra
+    return resolver_extra
 
 
 def extra_from_request(request):
@@ -56,29 +57,29 @@ def extra_from_request(request):
     #    for query_param_item in query_param_obj.lists():
     #        query_params.append(query_param_item)
 
-    request_extra = {'http_method': request.method,
-                     'http_url_path': request.path,
-                     'http_query_string': query_string,
-                     'http_query_params': query_params,
-                     'http_user_agent': user_agent,
-                     'http_user_name': user_name,
-                     'http_user_id': user_id,
-                     'http_referer': referer,
+    request_extra = {'method': request.method,
+                     'url_path': request.path,
+                     'query_string': query_string,
+                     'query_params': query_params,
+                     'user_agent': user_agent,
+                     'user_name': user_name,
+                     'user_id': user_id,
+                     'referer': referer,
                      # 'http_content_type': content_type,
-                     'http_content_length': content_length,
-                     'http_remote_addr': remote_addr,
-                     'http_server_name': server_name,
-                     'http_server_port': server_port,
+                     'content_length': content_length,
+                     'remote_addr': remote_addr,
+                     'server_name': server_name,
+                     'server_port': server_port,
                      # 'http_request_environ': request.environ,
                      }
 
     if cookies_dict.get('sessionid'):
-        request_extra['http_session_id'] = cookies_dict['sessionid']
+        request_extra['session_id'] = cookies_dict['sessionid']
 
     resolver_extra = extra_from_resolver_match(request.resolver_match)
-    request_extra.update(resolver_extra)
+    request_extra['resolver'] = resolver_extra
 
-    request_extra['http_get_host'] = request.get_host()
+    request_extra['get_host'] = request.get_host()
 
     return request_extra
 
@@ -86,7 +87,7 @@ def extra_from_request(request):
 class LogRequestMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         request_extra = extra_from_request(request)
-        extra = {'request': request_extra}
+        extra = {'http_request': request_extra}
 
         log.debug('request=%s, view_func=%s, view_args=%s, view_kwargs=%s',
                   request, view_func, view_args, view_kwargs, extra=extra)
@@ -95,7 +96,7 @@ class LogRequestMiddleware(MiddlewareMixin):
 
     def process_exception(self, request, exception):
         request_extra = extra_from_request(request)
-        extra = {'request': request_extra}
+        extra = {'http_request': request_extra}
 
         log.debug('process_exception request=%s, exception=%s',
                   request, exception, extra=extra)
@@ -114,14 +115,14 @@ class LogRequestMiddleware(MiddlewareMixin):
         request_extra = extra_from_request(request)
 
         response_extra = {
-            'http_status_code': response.status_code,
+            'status_code': response.status_code,
         }
 
         accepted_media_type = getattr(response, 'accepted_media_type', '')
-        response_extra['http_response_media_type'] = accepted_media_type
+        response_extra['media_type'] = accepted_media_type
 
-        extra['request'] = request_extra
-        extra['response'] = response_extra
+        extra['http_request'] = request_extra
+        extra['http_response'] = response_extra
 
         # extra.update(request_extra)
         # extra.update(response_extra)
