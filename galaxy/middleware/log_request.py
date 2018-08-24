@@ -1,5 +1,6 @@
 
 import logging
+import time
 
 from django.conf import settings
 
@@ -130,6 +131,11 @@ def extra_from_request(request):
 
 
 class LogRequestMiddleware(MiddlewareMixin):
+    def __init__(self, *args, **kwargs):
+        super(LogRequestMiddleware, self).__init__(*args, **kwargs)
+
+        self.start_time = None
+
     def process_view(self, request, view_func, view_args, view_kwargs):
         # GALAXY_LOG_REQUESTS_VIEW is False by default, which means we
         # return here and  dont log from process_view by default
@@ -166,6 +172,9 @@ class LogRequestMiddleware(MiddlewareMixin):
                   request, exception, extra=extra)
         return None
 
+    def process_request(self, request):
+        self.start_time = time.time()
+
     def process_response(self, request, response):
 
         if not getattr(settings, LOG_REQUESTS_SETTING, False):
@@ -175,6 +184,10 @@ class LogRequestMiddleware(MiddlewareMixin):
         if 'favicon' in request.path:
             return response
 
+        duration = 0.0
+        if self.start_time:
+            duration = time.time() - self.start_time
+
         extra = {}
 
         request_extra = extra_from_request(request)
@@ -182,6 +195,8 @@ class LogRequestMiddleware(MiddlewareMixin):
         response_extra = {
             'status_code': response.status_code,
         }
+
+        response_extra['duration'] = round(duration, 5)
 
         accepted_media_type = getattr(response, 'accepted_media_type', '')
         response_extra['media_type'] = accepted_media_type
