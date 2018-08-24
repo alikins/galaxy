@@ -1,6 +1,8 @@
 
 import logging
+import sys
 import time
+import traceback
 
 from django.conf import settings
 
@@ -32,6 +34,35 @@ LOG_REQUESTS_VIEW_EXTRA_SETTING = 'GALAXY_LOG_REQUESTS_VIEW_EXTRA'
 # If we log from process_exception or not. Default is False.
 LOG_REQUESTS_EXPECTIONS_SETTING = 'GALAXY_LOG_REQUESTS_EXCEPTIONS'
 
+# META fields that start with these prefixes are added to log
+META_PREFIXES = ('HTTP_', 'CONTENT_', 'QUERY_',
+                 'REMOTE_', 'REQUEST_', 'SERVER_')
+
+# META fields that might match above but are excluded anyway
+META_EXCLUDES = ('HTTP_COOKIE',)
+
+
+def extra_from_exception(limit=None):
+    traceback_extra = {}
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+
+    traceback_lines = traceback.format_exception(exc_type,
+                                                 exc_value,
+                                                 exc_traceback)
+
+    traceback_extra['tb_string'] = '\n'.join(traceback_lines)
+
+    exception_structured = traceback.extract_tb(exc_traceback, limit=limit)
+    tb_list = []
+    for frame in exception_structured:
+        tb_list.append({'filename': frame[0],
+                        'lineno': frame[1],
+                        'function': frame[2],
+                        'code': frame[3]})
+
+    traceback_extra['tb_structured'] = tb_list
+    return traceback_extra
+
 
 def extra_from_resolver_match(resolver_match):
     # nested inside 'resolver' key to avoid clobbering 'func', 'args'
@@ -52,22 +83,7 @@ def extra_from_resolver_match(resolver_match):
     return resolver_extra
 
 
-META_PREFIXES = ('HTTP_', 'CONTENT_', 'QUERY_',
-                 'REMOTE_', 'REQUEST_', 'SERVER_')
-
-
 def extra_from_request(request):
-    # TODO: maybe easier to just return the whole META dict as
-    #       a subdict in request_extra, possibly with config
-    #       excluding things.
-    # user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
-    # referer = request.META.get('HTTP_REFERER', '')
-    # remote_addr = request.META.get('REMOTE_ADDR', '')
-    # server_name = request.META.get('SERVER_NAME', '')
-    # server_port = request.META.get('SERVER_PORT', '')
-    # query_string = request.META.get('QUERY_STRING', '')
-    # content_type = request.META.get('CONTENT_TYPE', '')
-    # content_length = request.META.get('CONTENT_LENGTH', '')
 
     user_obj = getattr(request, 'user', None)
     user_name = getattr(user_obj, 'username', None)
@@ -86,32 +102,22 @@ def extra_from_request(request):
     #        query_params.append(query_param_item)
 
     request_extra = {'scheme': request.scheme,
-                     # 'method': request.method,
                      'url_path': request.path,
                      'url_path_info': request.path_info,
                      'url_full_path': request.get_full_path(),
-                     # 'url_full_path_info': request.get_full_path_info(),
                      'url_absolute': request.build_absolute_uri(),
-                     # 'query_string': query_string,
                      'query_params': query_params,
                      'post_parans': post_params,
-                     # 'user_agent': user_agent,
                      'user_name': user_name,
                      'user_id': user_id,
-                     # 'referer': referer,
-                     # 'http_content_type': content_type,
-                     # 'content_length': content_length,
-                     # 'remote_addr': remote_addr,
-                     # 'server_name': server_name,
-                     # 'server_port': server_port,
-                     # 'http_request_environ': request.environ,
                      }
 
     # Just get expected META fields, including http headers
     meta_extra = {}
     for meta_key in request.META:
         for meta_prefix in META_PREFIXES:
-            if meta_key.startswith(meta_prefix):
+            if meta_key.startswith(meta_prefix) and meta_key \
+                    not in META_EXCLUDES:
                 meta_extra[meta_key] = request.META[meta_key]
 
     request_extra['META'] = meta_extra
@@ -166,7 +172,10 @@ class LogRequestMiddleware(MiddlewareMixin):
             return None
 
         request_extra = extra_from_request(request)
+        exception_extra = extra_from_exception()
+
         extra = {'http_request': request_extra}
+        extra['galaxy_exception'] = exception_extra
 
         log.debug('process_exception request=%s, exception=%s',
                   request, exception, extra=extra)
