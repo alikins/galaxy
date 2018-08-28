@@ -35,6 +35,7 @@ LOG_REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
 GENERATE_REQUEST_ID_IF_NOT_IN_HEADER = True
 REQUEST_ID_RESPONSE_HEADER = "X-GALAXY-REQUEST-ID"
 GALAXY_LOG_REQUESTS = True
+GALAXY_LOG_REQUESTS_EXCEPTIONS = True
 LOG_REQUESTS = False
 
 shared_log_format = '[%(asctime)s %(request_id)-0.7s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
@@ -57,9 +58,14 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s',
         },
-        'json': {
+        'jog': {
             '()': 'jog.JogFormatter',
             'format': default_log_format,
+        },
+        'json': {
+            '()': 'galaxy.common.logutils.JSONFormatter',
+            'format': default_log_format,
+            'indent': 4,
         },
         'django_server': {
             '()': 'django.utils.log.ServerFormatter',
@@ -105,6 +111,17 @@ LOGGING = {
             # 'formatter': 'pprint',
             'filters': ['request_id'],
         },
+        'console_json_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/console_json_debug.log',
+            # 'formatter': 'verbose',
+            'formatter': 'json',
+            # 'formatter': 'pprint',
+            'filters': ['request_id'],
+            # 'filters': ['require_debug_true'],
+            # 'filters': ['require_debug_false'],
+        },
         'celery_console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -113,10 +130,31 @@ LOGGING = {
             # 'formatter': 'pprint',
             'filters': ['request_id'],
         },
+        'celery_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/celery_debug.log',
+            'formatter': 'verbose',
+            # 'formatter': 'json',
+            # 'formatter': 'pprint',
+            'filters': ['request_id'],
+            # 'filters': ['require_debug_true'],
+            # 'filters': ['require_debug_false'],
+        },
         'import_task': {
             'level': 'DEBUG',
             'class': 'galaxy.common.logutils.ImportTaskHandler',
             'formatter': 'simple',
+            'filters': ['request_id'],
+            # 'formatter': 'verbose',
+        },
+        'import_task_debug_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': '/galaxy/celery_debug_json.log',
+            'formatter': 'json',
+            'filters': ['request_id'],
+            # 'formatter': 'verbose',
         },
         'django_server_console': {
             'level': 'DEBUG',
@@ -135,7 +173,8 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/django_debug_server.log',
-            'formatter': 'pprint',
+            # 'formatter': 'pprint',
+            'formatter': 'json',
             'filters': ['request_id'],
         },
         'galaxy_debug_file': {
@@ -160,14 +199,14 @@ LOGGING = {
     'loggers': {
         # root logger
         '': {
-            'handlers': ['console'],
+            'handlers': ['console_json_file', 'console'],
             # 'level': 'INFO',
             'level': 'DEBUG',
             # 'propagate': True,
         },
         'django.request': {
             # 'handlers': ['mail_admins'],
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             # 'level': 'INFO',
             'level': 'DEBUG',
             'propagate': True,
@@ -175,8 +214,9 @@ LOGGING = {
         'django': {
             # 'handlers': ['console'],
             'handlers': ['django_server_request_file',
-                         'django_server_request_debug_file',
-                         'console'],
+                         # 'django_server_request_debug_file',
+                         # 'console'
+                         ],
             'level': 'DEBUG',
             'propagate': True,
         },
@@ -204,49 +244,62 @@ LOGGING = {
         #            'propagate': False,
         #        },
         'galaxy.api': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'galaxy.api.permissions': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'INFO',
             # 'level': 'DEBUG',
             'propagate': True,
         },
         'galaxy.api.access': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             # 'level': 'INFO',
             'level': 'DEBUG',
             'propagate': True,
         },
         'galaxy.api.throttling': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'galaxy.accounts': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'galaxy.main': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'galaxy.models': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'galaxy.worker': {
-            'handlers': ['console', 'celery_console'],
+            'handlers': ['celery_file',
+                         'celery_console'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
+        },
+        'galaxy.importer': {
+            'handlers': ['celery_file',
+                         # 'console',
+                         'celery_console'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
         'galaxy.worker.tasks.import_repository': {
-            'handlers': ['import_task'],
+            'handlers': ['import_task',
+                         'import_task_debug_file',
+                         # 'celery_file',
+                         # 'celery_console',
+                         # 'console',
+                         ],
             'level': 'DEBUG',
             'propagate': False,
         },
@@ -261,23 +314,48 @@ LOGGING = {
             'level': 'INFO',
         },
         'allauth': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'celery': {
-            'handlers': ['celery_console'],
+            'handlers': ['celery_file',
+                         'celery_console'],
+            'level': 'DEBUG',
+            'propagate': False,
+            # 'filters': ['django_db_sql_celery_filter'],
+        },
+        'celery.task': {
+            # 'handlers': ['celery_console',
+            #             'celery_file'],
             'level': 'DEBUG',
             # 'filters': ['django_db_sql_celery_filter'],
         },
         'celery.beat': {
-            'handlers': ['celery_console'],
+            # 'handlers': ['celery_console',
+            #             'celery_file'],
             'level': 'INFO',
         },
         'github': {
-            'handlers': ['console'],
+            # 'handlers': ['console'],
             'level': 'INFO',
         },
+        'amqp': {
+            'handlers': ['celery_file',
+                         'celery_console'],
+            'level': 'DEBUG',
+        },
+        'kombu': {
+            'handlers': ['celery_file',
+                         'celery_console'],
+            'level': 'DEBUG',
+        },
+        'multiprocessing': {
+            'level': 'INFO',
+            'propagate': True,
+        },
+
+
     }
 }
 # Application definition
@@ -292,11 +370,15 @@ MIDDLEWARE += [  # noqa: F405
 ]
 
 # https://github.com/celery/celery/issues/4326
+# CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 # CELERY_CELERYD_HIJACK_ROOT_LOGGER = False
-CELERY_WORKER_LOG_FORMAT = shared_log_format
-CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s"
-
+# CELERY_WORKER_LOG_FORMAT = shared_log_format
+CELERY_WORKER_LOG_FORMAT = default_log_format
+CELERY_WORKER_TASK_LOG_FORMAT = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(filename)s %(funcName)s:%(lineno)d : [%(task_name)s(%(task_id)s)] %(message)s - %(request_id)s"
+CELERYD_LOG_FORMAT = default_log_format
+CELERYD_TASK_LOG_FORMAT = default_log_format
 # Database
 # ---------------------------------------------------------
 

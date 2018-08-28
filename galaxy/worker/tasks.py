@@ -18,6 +18,7 @@
 from __future__ import absolute_import
 
 import logging
+from celery import signals as celery_signals
 
 import celery
 import github
@@ -93,6 +94,27 @@ METADATA_SEVERITY = {
 COMPATIBILITY_SEVERITY = {
     'importer_not_all_versions_tested': 5,  # RoleMetaParser
 }
+
+
+@celery_signals.after_task_publish.connect
+def task_sent_handler(sender=None, body=None, **kwargs):
+    LOG.debug('foo')
+    print('after_task_publish for task id {body[id]}'.format(
+        body=body,
+    ))
+    LOG.debug('kwargs: %s', kwargs)
+
+
+#@celery_signals.setup_logging.connect
+#def setup_logging_handler(*args, **kwargs):
+#    LOG.debug('args: %s', repr(args))
+#    LOG.debug('kwargs: %s', repr(kwargs))
+
+
+@celery_signals.after_setup_task_logger.connect
+def after_setup_task_logger_handler(*args, **kwargs):
+    LOG.debug('after_setup_task_logger args: %s', repr(args))
+    LOG.debug('after_setup_task_logger kwargs: %s', repr(kwargs))
 
 
 @celery.task

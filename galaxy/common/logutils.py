@@ -17,9 +17,13 @@
 
 from __future__ import absolute_import
 
+import json
 import logging
 import sqlparse
 import pprint
+
+import jog
+from jog import elk
 
 from galaxy import constants
 
@@ -83,6 +87,104 @@ class ImportTaskHandler(logging.Handler):
             rule_desc=lint['rule_desc'],
             content_name=lint['content_name'],
         )
+
+
+class IndentedJSONEncoder(json.JSONEncoder):
+    '''A JSONEncoder that defaults to indented "pretty" output'''
+
+    def __init__(self, *args, **kwargs):
+        kwargs['indent'] = 2
+        super(IndentedJSONEncoder, self).__init__(*args, **kwargs)
+
+    # We don't want to lose a log because it contains
+    # a object we don't know how to encode. Instead,
+    # convert it to a string.
+    def default(self, o):
+        return str(o)
+
+
+class JogIndentedJSONFormatter(jog.JogFormatter):
+    def __init__(self, fmt=None, datefmt=None, style=None,
+                 fn=None, json_encoder_cls=None):
+        json_encoder_cls = json_encoder_cls or IndentedJSONEncoder
+        super(JogIndentedJSONFormatter, self).__init__(fmt=fmt,
+                                                       datefmt=datefmt,
+                                                       style=style,
+                                                       fn=fn)
+        self.json_encoder_cls = json_encoder_cls
+
+
+# c&p of git@github.com:braedon/python-jog.git since it's not easy
+# to override the json encoder
+class JSONFormatter(logging.Formatter):
+
+    def __init__(self, fmt=None, datefmt=None,
+                 style=None, fn=elk.format_log,
+                 json_encoder_cls=None, indent=None):
+        self.fn = fn
+        kwargs = {
+            'fmt': fmt,
+            'datefmt': datefmt
+        }
+        # Python2 logging.Formatter doesn't support the `style` parameter so
+        # only pass it on if passed to us.
+        if style:
+            kwargs['style'] = style
+        super(JSONFormatter, self).__init__(**kwargs)
+
+        # self.json_encoder_cls = json_encoder_cls or IndentedJSONEncoder
+        self.json_encoder_cls = json_encoder_cls or jog.LoggingJSONEncoder
+        self.indent = indent
+
+    def format(self, record):
+        # Call this first as it changes the record, e.g. formatting exceptions.
+        # For efficency's sake, we use these changes rather than performing
+        # them ourselves.
+        plain_text_log = super(JSONFormatter, self).format(record)
+
+        fields = record.__dict__.copy()
+
+        field_updates = {}
+
+        message_format = fields.pop('msg')
+        # If the message is a dict use it directly
+        if isinstance(message_format, (dict,)):
+            del fields['message']
+            field_updates.update(message_format)
+
+        # Otherwise it's a normal log record, so we need to format it
+        else:
+            # Preserve the unformatted message string.
+            # Useful for selecting selecting all instances of a log,
+            # regardless of the variables substituted in.
+            field_updates['message_format'] = message_format
+
+            # The format args can be either args (list) or kwargs (dict)
+            # so split into different fields to simplify handling later.
+            if 'args' in fields:
+                args = fields.pop('args')
+                if isinstance(args, (dict,)):
+                    field_updates['message_kwargs'] = args
+                else:
+                    field_updates['message_args'] = args
+
+            # The formatted message itself
+            field_updates['message'] = record.getMessage()
+
+            # The full formatted non-structured log line.
+            # Useful if you need to tail the logs.
+            field_updates['log'] = plain_text_log
+
+        log = fields
+        log.update(field_updates)
+
+        # Drop empty fields
+        log = {k: v for k, v in log.items() if v}
+
+        log = self.fn(log)
+
+        return json.dumps(log, sort_keys=True,
+                          indent=self.indent, cls=self.json_encoder_cls)
 
 
 class PPrintFormatter(logging.Formatter):
