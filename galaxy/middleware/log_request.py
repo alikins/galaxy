@@ -43,14 +43,14 @@ META_EXCLUDES = ('HTTP_COOKIE',)
 
 
 def extra_from_exception(limit=None):
-    traceback_extra = {}
+    exception_extra = {}
     exc_type, exc_value, exc_traceback = sys.exc_info()
 
     traceback_lines = traceback.format_exception(exc_type,
                                                  exc_value,
                                                  exc_traceback)
 
-    traceback_extra['tb_string'] = '\n'.join(traceback_lines)
+    exception_extra['tb_string'] = '\n'.join(traceback_lines)
 
     exception_structured = traceback.extract_tb(exc_traceback, limit=limit)
     tb_list = []
@@ -60,8 +60,11 @@ def extra_from_exception(limit=None):
                         'function': frame[2],
                         'code': frame[3]})
 
-    traceback_extra['tb_structured'] = tb_list
-    return traceback_extra
+    exception_extra['tb_structured'] = tb_list
+    exception_extra['exception_type'] = exc_type
+    # TODO: likely need to str/repr to get something serializable
+    exception_extra['exception_value'] = exc_value
+    return exception_extra
 
 
 def extra_from_resolver_match(resolver_match):
@@ -174,11 +177,12 @@ class LogRequestMiddleware(MiddlewareMixin):
         request_extra = extra_from_request(request)
         exception_extra = extra_from_exception()
 
-        extra = {'http_request': request_extra}
-        extra['galaxy_exception'] = exception_extra
+        extra = {'http_request': request_extra,
+                 'galaxy_exception': exception_extra}
 
-        log.debug('process_exception request=%s, exception=%s',
+        log.error('process_exception request=%s, exception=%s',
                   request, exception, extra=extra)
+
         return None
 
     def process_request(self, request):
