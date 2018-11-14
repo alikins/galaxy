@@ -74,23 +74,6 @@ LOGGING = {
             '()': 'galaxy.common.logutils.PPrintFormatter',
             'indent': 4,
         },
-        'color_verbose': {
-            '()': 'color_debug.color_debug.ColorFormatter',
-            'format': '[%(asctime)s %(levelname)-0.1s] %(name)s %(funcName)s:%(lineno)-3d - %(message)s - %(request_id)s',
-            # default_color_by_attr: 'module'
-            'default_color_by_attr': 'request_id',
-            # default_color_by_attr: msg
-            'auto_color': True,
-            'color_groups': [
-                ['process', ['processName']],
-                ['levelname', ['levelname']],
-                ['funcName', ['lineno']],
-            ]
-            # messages logged with the same 'msg' share a color
-            #  - ['msg', ['message']]
-            #  - ['name', ['name', 'levelname']]
-        },
-
     },
 
     'filters': {
@@ -117,30 +100,23 @@ LOGGING = {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            # 'formatter': 'verbose',
+            'formatter': 'verbose',
             # 'formatter': 'json',
             # 'formatter': 'pprint',
-            'formatter': 'color_verbose',
             'filters': ['request_id'],
-            # 'filters': ['require_debug_true'],
-            # 'filters': ['require_debug_false'],
         },
         'celery_console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            # 'formatter': 'verbose',
+            'formatter': 'verbose',
             # 'formatter': 'json',
             # 'formatter': 'pprint',
-            'formatter': 'color_verbose',
             'filters': ['request_id'],
-            # 'filters': ['require_debug_true'],
-            # 'filters': ['require_debug_false'],
         },
         'import_task': {
             'level': 'DEBUG',
             'class': 'galaxy.common.logutils.ImportTaskHandler',
             'formatter': 'simple',
-            # 'formatter': 'verbose',
         },
         'django_server_console': {
             'level': 'DEBUG',
@@ -154,7 +130,6 @@ LOGGING = {
             'filename': '/galaxy/django_server.log',
             'formatter': 'django_server',
             'filters': ['request_id'],
-            # 'filters': ['require_debug_true'],
         },
         'django_server_request_debug_file': {
             'level': 'DEBUG',
@@ -162,7 +137,6 @@ LOGGING = {
             'filename': '/galaxy/django_debug_server.log',
             'formatter': 'pprint',
             'filters': ['request_id'],
-            # 'filters': ['require_debug_true'],
         },
         'galaxy_debug_file': {
             'level': 'DEBUG',
@@ -170,28 +144,17 @@ LOGGING = {
             'filename': '/galaxy/galaxy_debug.log',
             'formatter': 'pprint',
             'filters': ['request_id'],
-            # 'filters': ['require_debug_true'],
         },
         'django_db_file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/django_db.log',
             'formatter': 'django_db_sql',
-            # 'filters': ['django_db_sql_celery_filter'],
             # 'formatter': 'verbose',
             'filters': ['django_db_sql_celery_filter',
                         'require_debug_true',
                         'request_id'],
         },
-#        'django_db_color_file': {
-#            'level': 'DEBUG',
-#            'class': 'logging.handlers.WatchedFileHandler',
-#            'filename': '/galaxy/django_db_color.log',
-#            'formatter': 'color_verbose',
-#            'filters': ['django_db_sql_celery_filter',
-#                        'require_debug_true',
-#                        'request_id'],
-#        }
     },
 
     'loggers': {
@@ -232,14 +195,14 @@ LOGGING = {
             'propagate': False,
             # 'propagate': True,
         },
-#        'django.server': {
-#            'handlers': ['django_server_request_file',
-#                         'django_server_request_debug_file',
-#                         'console'],
-            # 'level': 'INFO',
-#            'level': 'DEBUG',
-            # 'propagate': False,
-#        },
+        #        'django.server': {
+        #            'handlers': ['django_server_request_file',
+        #                         'django_server_request_debug_file',
+        #                         'console'],
+        #            'level': 'INFO',
+        #            'level': 'DEBUG',
+        #            'propagate': False,
+        #        },
         'galaxy.api': {
             'handlers': ['console'],
             'level': 'DEBUG',
