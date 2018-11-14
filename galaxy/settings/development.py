@@ -37,7 +37,7 @@ REQUEST_ID_RESPONSE_HEADER = "X-GALAXY-REQUEST-ID"
 GALAXY_LOG_REQUESTS = True
 LOG_REQUESTS = False
 
-shared_log_format = '[%(asctime)s %(request_id)s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
+shared_log_format = '[%(asctime)s %(request_id)-0.7s %(process)d:%(threadName)s %(levelname)s] %(name)s %(filename)s %(funcName)s:%(lineno)d'
 default_log_format = '%s : %s' % (shared_log_format, '%(message)s')
 
 sql_log_format = shared_log_format + ': ====== begin ======\n%(sql)s\n====== end ======'
