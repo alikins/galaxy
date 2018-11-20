@@ -181,7 +181,8 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'filename': '/galaxy/galaxy_debug.log',
-            'formatter': 'pprint',
+            # 'formatter': 'pprint',
+            'formatter': 'verbose',
             'filters': ['request_id'],
         },
         'django_db_file': {
@@ -199,7 +200,7 @@ LOGGING = {
     'loggers': {
         # root logger
         '': {
-            'handlers': ['console_json_file', 'console'],
+            'handlers': ['console_json_file', 'galaxy_debug_file', 'console'],
             # 'level': 'INFO',
             'level': 'DEBUG',
             # 'propagate': True,
@@ -310,7 +311,7 @@ LOGGING = {
         # if LOG_REQUESTS=True, then he django-log-request-id package
         # logs request details to 'log_request_id.middleware'
         'log_request_id.middleware': {
-            'handlers': ['console'],
+            'handlers': ['console', 'django_server_request_debug_file'],
             'level': 'INFO',
         },
         'allauth': {
