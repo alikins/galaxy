@@ -157,6 +157,14 @@ LOGGING['loggers']['pulpcore.app'] = {
     # 'propagate': False,
 }
 
+LOGGING['loggers']['pulpcore.tasking.services.worker_watcher'] = {
+    'level': 'INFO',
+}
+
+LOGGING['loggers']['rq.worker'] = {
+    'level': 'INFO',
+}
+
 LOGGING['loggers']['django.request'] = {
     'level': 'DEBUG',
     'handlers': ['console']
