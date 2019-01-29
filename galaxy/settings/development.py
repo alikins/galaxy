@@ -19,6 +19,8 @@
 import os
 
 from .default import *  # noqa
+from .default import LOGGING
+from .default import REST_FRAMEWORK
 
 
 # =========================================================
@@ -28,6 +30,13 @@ from .default import *  # noqa
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+
+# For request_id middleware
+# https://github.com/dabapps/django-log-request-id
+GENERATE_REQUEST_ID_IF_NOT_IN_HEADER = True
+LOG_REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
+REQUEST_ID_RESPONSE_HEADER = "X-GALAXY-REQUEST-ID"
+# LOG_REQUESTS = False
 
 # Application definition
 # ---------------------------------------------------------
@@ -54,6 +63,13 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
     }
 }
+
+REST_FRAMEWORK.update(
+    {'DEFAULT_AUTHENTICATION_CLASSES':
+     ('rest_framework.authentication.TokenAuthentication',
+      'rest_framework.authentication.SessionAuthentication')
+     }
+)
 
 # Create default alias for worker logging
 DATABASES['logging'] = DATABASES['default'].copy()
@@ -109,3 +125,54 @@ WAIT_FOR = [
 ]
 
 STATIC_ROOT = ''
+
+LOGGING['formatters']['verbose'] = {
+    # request_id is added by the request_id filter on the
+    # console handler (and others)
+    'format': '[%(asctime)s %(request_id)-0.10s %(levelname)s] %(name)s %(module)s.%(funcName)s:%(lineno)d - %(message)s',   # noqa
+    'django_server': {
+        '()': 'django.utils.log.ServerFormatter',
+        'format': '[%(server_time)s] %(message)s - %(request_id)s',
+    },
+}
+
+# add request id to console handler so request_id is populated
+LOGGING['handlers']['console']['filters'] = ['request_id']
+
+# root logger
+LOGGING['loggers'][''] = {
+    'level': 'DEBUG',
+    'handlers': ['console'],
+}
+
+LOGGING['loggers']['pulpcore'] = {
+    'level': 'DEBUG',
+    'handlers': ['console'],
+    # 'propagate': False,
+}
+
+LOGGING['loggers']['pulpcore.app'] = {
+    'level': 'DEBUG',
+    'handlers': ['console'],
+    # 'propagate': False,
+}
+
+LOGGING['loggers']['django.request'] = {
+    'level': 'DEBUG',
+    'handlers': ['console']
+}
+
+LOGGING['loggers']['django.security'] = {
+    'level': 'DEBUG',
+    'handlers': ['console']
+}
+
+LOGGING['loggers']['django.server'] = {
+    'level': 'DEBUG',
+    'handlers': ['console']
+}
+
+LOGGING['loggers']['allauth'] = {
+    'level': 'DEBUG',
+    'handlers': ['console'],
+}
