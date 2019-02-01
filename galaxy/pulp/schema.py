@@ -39,6 +39,49 @@ class CollectionFilename(object):
             )
 
 
+@attr.s(frozen=True)
+class CollectionInfo(object):
+    namespace = attr.ib()
+    name = attr.ib()
+    version = attr.ib()
+    license = attr.ib()
+    description = attr.ib(default=None)
+
+    repository = attr.ib(default=None)
+    documentation = attr.ib(default=None)
+    homepage = attr.ib(default=None)
+    issues = attr.ib(default=None)
+
+    authors = attr.ib(factory=list)
+    tags = attr.ib(factory=list)
+    readme = attr.ib(default='README.md')
+
+    # Note galaxy.yml 'dependencies' field is what mazer and ansible
+    # consider 'requirements'. ie, install time requirements.
+    dependencies = attr.ib(factory=list)
+
+    @property
+    def label(self):
+        return '%s.%s' % (self.namespace, self.name)
+
+
+@attr.s(frozen=True)
+class CollectionArtifactManifest(object):
+    collection_info = attr.ib(type=CollectionInfo)
+    format = attr.ib(default=1)
+
+    # files = attr.ib(factory=list,
+    # converter=convert_list_to_artifact_file_list)
+    files = attr.ib(factory=list)
+
+    @classmethod
+    def parse(cls, data):
+        meta = json.loads(data)
+        col_info = meta.pop('collection_info', None)
+        meta['collection_info'] = CollectionInfo(**col_info)
+        return cls(**meta)
+
+
 @attr.s(frozen=True, slots=True, kw_only=True)
 class Metadata:
     """Ansible Collection metadata."""

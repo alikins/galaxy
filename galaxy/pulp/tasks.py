@@ -26,6 +26,9 @@ from pulpcore.app import models as pulp_models
 
 from . import schema
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class VersionConflict(Exception):
     pass
@@ -36,9 +39,17 @@ def load_metadata(artifact):
         temp_path = os.path.join(td, os.path.basename(artifact.file.path))
         shutil.copy(artifact.file.path, temp_path)
         with tarfile.open(temp_path, 'r') as pkg:
-            meta_file = pkg.extractfile('METADATA.json')
-            with meta_file:
-                return schema.Metadata.parse(meta_file.read())
+            # log.info('filenames: %s', pkg.getnames())
+            for member in pkg.getmembers():
+                # log.info('%s: %s', member.path.split('/'),
+                #         member.path.split('/')[-1])
+                if member.isfile() and \
+                        member.path.split('/')[-1] == 'MANIFEST.json':
+                    log.info('extracting %s from artifact', member)
+                    meta_file = pkg.extractfile(member)
+                    with meta_file:
+                        return schema.CollectionArtifactManifest.parse(meta_file.read())
+            log.warning('No metadata found for artifact=%s', artifact)
 
 
 @transaction.atomic
@@ -48,19 +59,25 @@ def import_collection(artifact_pk, repository_pk):
 
     meta = load_metadata(artifact)
 
+    collection_info = meta.collection_info
+    log.info('collection_info: %s type(): %s',
+             collection_info, type(collection_info))
+    # log.info('meta: %s', meta)
     collection, _ = models.Collection.objects.get_or_create(
-        namespace=meta.namespace,
-        name=meta.name,
+        namespace=collection_info.namespace,
+        name=collection_info.name,
     )
     collection_version, is_created = collection.versions.get_or_create(
         collection=collection,
-        version=meta.version,
+        version=collection_info.version,
     )
     if not is_created:
         raise VersionConflict()
 
     relative_path = '{0}-{1}-{2}.tar.gz'.format(
-        meta.namespace, meta.name, meta.version
+        collection_info.namespace,
+        collection_info.name,
+        collection_info.version
     )
     pulp_models.ContentArtifact.objects.create(
         artifact=artifact,
@@ -82,3 +99,4 @@ def import_collection(artifact_pk, repository_pk):
         base_path='galaxy',
         defaults={'publication': publication},
     )
+    log.info('Imported artifact: %s', relative_path)
