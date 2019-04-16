@@ -19,19 +19,16 @@ from django.urls import path
 
 from galaxy.api.v2 import views
 
-
 app_name = 'api'
 urlpatterns = [
-    # Collection Imports URLs
-    path('collection-imports/<int:pk>/',
-         views.CollectionImportView.as_view(),
-         name='collection-import-detail'),
+    # Collection URLs
+    path('collections/',
+         views.CollectionListView.as_view(),
+         name='collections-list'),
+    path('collections/<namespace>/<name>/versions/<version>/artifact/',
+         views.CollectionArtifactView.as_view(),
+         name='collection-version-artifact'),
 
-
-    # Collection Version detail URLs
-    path('collection-versions/<int:version_pk>/',
-         views.VersionDetailView.as_view(),
-         name='version-detail-by-id'),
 
     path('collections/<str:namespace>/<str:name>/versions/<str:version>/',
          views.VersionDetailView.as_view(),
@@ -61,4 +58,21 @@ urlpatterns = [
     path('collections/<str:namespace>/<str:name>/',
          views.CollectionDetailView.as_view(),
          name='collection-detail-by-name'),
+    # Collection Version detail URLs
+    path('collection-versions/<int:version_pk>/',
+         views.VersionDetailView.as_view(),
+         name='version-detail-by-id'),
+    # Collection Versions URLs
+    path('collection-versions/<int:pk>/',
+         views.CollectionVersionView.as_view(),
+         name='collection-version-detail'),
+    path('collection-versions/<int:pk>/artifact/',
+         views.CollectionArtifactView.as_view(),
+         name='collection-version-artifact')
+
+    # Collection Imports URLs
+    path('collection-imports/<int:pk>/',
+         views.CollectionImportView.as_view(),
+         name='collection-import-detail'),
+
 ]

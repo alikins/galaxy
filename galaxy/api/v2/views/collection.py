@@ -35,7 +35,7 @@ from galaxy.worker import tasks
 from galaxy.common import tasking
 
 
-__all__ = [
+__all__ = (
     'CollectionListView',
     'CollectionDetailView',
 ]

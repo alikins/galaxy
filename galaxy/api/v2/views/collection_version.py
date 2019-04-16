@@ -24,11 +24,20 @@ from rest_framework.permissions import IsAuthenticated
 from galaxy.main import models
 from galaxy.api.v2 import serializers
 from galaxy.api.v2.pagination import CustomPagination
+from django.shortcuts import redirect, get_object_or_404
+
+from rest_framework import exceptions as drf_exc
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import status as http_codes
+from rest_framework import views
+
 
 
 __all__ = (
     'VersionListView',
     'VersionDetailView',
+    'CollectionVersionView',
+    'CollectionArtifactView',
 )
 
 
@@ -82,3 +91,24 @@ class VersionDetailView(views.APIView):
                 collection=collection,
                 version=version_str,
             )
+class CollectionVersionView(views.APIView):    permission_classes = (IsAuthenticated, )
+    def get(self, request, **kwargs):
+        raise drf_exc.APIException(
+            detail='Not implemented',
+            code=http_codes.HTTP_501_NOT_IMPLEMENTED)
+
+# TODO(cutwater): Use internal redirect for nginx
+class CollectionArtifactView(views.APIView):
+    permission_classes = (AllowAny, )
+
+    def get(self, request, pk=None, namespace=None, name=None, version=None):
+        if pk is not None:
+            version = get_object_or_404(models.CollectionVersion, pk=pk)
+        else:
+            version = get_object_or_404(
+                models.CollectionVersion,
+                collection__namespace__name__iexact=namespace,
+                collection__name__iexact=name,
+                version__exact=version,
+            )
+        return redirect(version.get_download_url())

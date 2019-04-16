@@ -25,4 +25,6 @@ from galaxy.api.v2.views.collection_import import (  # noqa: F401
 from .collection_version import (  # noqa: F401
     VersionListView,
     VersionDetailView,
+    CollectionVersionView,
+    CollectionArtifactView,
 )
