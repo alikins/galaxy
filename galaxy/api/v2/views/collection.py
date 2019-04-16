@@ -38,7 +38,7 @@ from galaxy.common import tasking
 __all__ = (
     'CollectionListView',
     'CollectionDetailView',
-]
+)
 
 
 # FIXME(cutwater): Implement consistent error reporting format.

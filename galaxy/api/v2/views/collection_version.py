@@ -15,22 +15,18 @@
 # You should have received a copy of the Apache License
 # along with Galaxy.  If not, see <http://www.apache.org/licenses/>.
 
-from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect, get_object_or_404
 from rest_framework import views
 from rest_framework import generics
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from galaxy.main import models
 from galaxy.api.v2 import serializers
 from galaxy.api.v2.pagination import CustomPagination
-from django.shortcuts import redirect, get_object_or_404
 
 from rest_framework import exceptions as drf_exc
-from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status as http_codes
-from rest_framework import views
-
 
 
 __all__ = (
@@ -91,11 +87,16 @@ class VersionDetailView(views.APIView):
                 collection=collection,
                 version=version_str,
             )
-class CollectionVersionView(views.APIView):    permission_classes = (IsAuthenticated, )
+
+
+class CollectionVersionView(views.APIView):
+    permission_classes = (IsAuthenticated, )
+
     def get(self, request, **kwargs):
         raise drf_exc.APIException(
             detail='Not implemented',
             code=http_codes.HTTP_501_NOT_IMPLEMENTED)
+
 
 # TODO(cutwater): Use internal redirect for nginx
 class CollectionArtifactView(views.APIView):

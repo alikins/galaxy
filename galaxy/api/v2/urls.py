@@ -58,17 +58,19 @@ urlpatterns = [
     path('collections/<str:namespace>/<str:name>/',
          views.CollectionDetailView.as_view(),
          name='collection-detail-by-name'),
+
     # Collection Version detail URLs
     path('collection-versions/<int:version_pk>/',
          views.VersionDetailView.as_view(),
          name='version-detail-by-id'),
+
     # Collection Versions URLs
     path('collection-versions/<int:pk>/',
          views.CollectionVersionView.as_view(),
          name='collection-version-detail'),
     path('collection-versions/<int:pk>/artifact/',
          views.CollectionArtifactView.as_view(),
-         name='collection-version-artifact')
+         name='collection-version-artifact'),
 
     # Collection Imports URLs
     path('collection-imports/<int:pk>/',
