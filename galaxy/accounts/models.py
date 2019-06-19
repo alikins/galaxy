@@ -41,8 +41,9 @@ class CustomUser(auth_models.AbstractBaseUser,
         _('username'),
         max_length=30,
         unique=True,
-        help_text=_('Required. 30 characters or fewer. Letters, numbers and '
-                    '@/./+/-/_ characters'),
+        help_text='Required. 30 characters or fewer. Letters, numbers and @/./+/-/_ characters',
+        # help_text=_('Required. 30 characters or fewer. Letters, numbers and '
+        #            '@/./+/-/_ characters'),
         validators=[
             validators.RegexValidator(re.compile(r'^[a-zA-Z0-9_.@+-]+$'),
                                       _('Enter a valid username.'),
