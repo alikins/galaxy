@@ -20,8 +20,27 @@ from django.contrib import admin
 from django.views.generic import TemplateView
 from django.urls import include, re_path as url
 
+from rest_framework.schemas import get_schema_view
+from rest_framework.renderers import JSONOpenAPIRenderer, OpenAPIRenderer
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, DjangoModelPermissionsOrAnonReadOnly
+# from galaxy.api import views
+# from galaxy.api.permissions import ModelAccessPermission
+import logging
+log = logging.getLogger(__name__)
 
 admin.autodiscover()
+
+schema_view = get_schema_view(
+    title='Galaxy API',
+    url='https://galaxy.ansible.com/api/',
+    # patterns=api_urls,
+    # patterns=schema_api_patterns,
+    # urlconf='galaxy.api.urls',
+    renderer_classes=[OpenAPIRenderer, JSONOpenAPIRenderer],
+    # permission_classes=[AllowAny],
+    permission_classes=[IsAuthenticatedOrReadOnly],
+    # permission_classes=[DjangoModelPermissionsOrAnonReadOnly],
+)
 
 
 urlpatterns = [
@@ -34,6 +53,7 @@ urlpatterns = [
                                                content_type='text/plain')),
     url(r'', include('django_prometheus.urls')),
     url(r'', include('galaxy.main.urls')),
+    url(r'^schema/', schema_view),
 ]
 
 if settings.DEBUG and 'debug_toolbar' in settings.INSTALLED_APPS:
@@ -41,3 +61,5 @@ if settings.DEBUG and 'debug_toolbar' in settings.INSTALLED_APPS:
     urlpatterns = [
         url(r'^__debug__/', include(debug_toolbar.urls)),
     ] + urlpatterns
+
+    log.debug('urlpatterns: %s', urlpatterns)

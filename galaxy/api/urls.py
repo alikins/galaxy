@@ -21,8 +21,11 @@
 #    New path-like routes should be preferred over old-style regexp routes.
 from django.urls import include, path, re_path as url
 
+from rest_framework.schemas import get_schema_view
+from rest_framework.renderers import JSONOpenAPIRenderer, OpenAPIRenderer
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, DjangoModelPermissionsOrAnonReadOnly
 from galaxy.api import views
-
+from galaxy.api.permissions import ModelAccessPermission
 
 event_tracking_urls = [
     url(r'^influx_session/$',
@@ -327,9 +330,36 @@ api_urls = [
     path('internal/', include('galaxy.api.internal.urls', namespace='int')),
 ]
 
-
 app_name = 'api'
+schema_api_patterns = [
+    # url(r'^$', views.ApiRootView.as_view(), name='api_root_view'),
+    # url(r'^v1/', include(v1_urls)),
+    # path('api/', include(api_urls)),
+    path('v2/', include('galaxy.api.v2.urls', namespace='v2')),
+    # path('', include('galaxy.api.download.urls')),
+    # path('v1/', include('galaxy.api.urls')),
+    # path('internal/', include('galaxy.api.internal.urls', namespace='int')),
+    # url(r'^(?P<pk>[0-9]+)/versions/$', views.RepositoryVersionList.as_view(),
+    #    name='repository_version_list'),
+    # url(r'^me/', include(me_urls)),
+    # path('internal/', include('galaxy.api.internal.urls')),
+]
+
+schema_view = get_schema_view(
+    title='Galaxy API',
+    url='https://galaxy.ansible.com/api/',
+    # patterns=api_urls,
+    patterns=schema_api_patterns,
+    # urlconf='galaxy.api.urls',
+    renderer_classes=[OpenAPIRenderer, JSONOpenAPIRenderer],
+    # permission_classes=[AllowAny],
+    permission_classes=[IsAuthenticatedOrReadOnly],
+    # permission_classes=[DjangoModelPermissionsOrAnonReadOnly],
+)
+
+
 urlpatterns = [
     path('', include('galaxy.api.download.urls')),
     path('api/', include(api_urls)),
+    # url('schema/', schema_view),
 ]
