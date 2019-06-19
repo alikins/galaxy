@@ -37,6 +37,7 @@ class LogoutView(CreateAPIView):
     """ User namespaces available within each active provider """
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
+    schema = None
 
     def post(self, request, *args, **kwargs):
         adapter = get_adapter(self.request)
