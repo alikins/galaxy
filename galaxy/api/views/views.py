@@ -39,6 +39,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import filters as drf_filters
+from rest_framework.schemas import AutoSchema
 
 from galaxy import constants
 from galaxy.accounts.models import CustomUser as User
@@ -107,6 +108,18 @@ def filter_rating_queryset(qs):
     )
 
 # -----------------------------------------------------------------------------
+
+
+class ImportTaskListViewSchema(AutoSchema):
+    """
+    Overrides `get_link()` to provide Custom Behavior X
+    """
+    def get_serializer_fields(self, path, method):
+        # FIXME(akl): kluge to bootstrap openapi generateschema
+        return []
+
+    def get_operation(self, path, method):
+        return {}
 
 
 class ApiRootView(base_views.APIView):
@@ -334,6 +347,7 @@ class ImportTaskList(base_views.ListCreateAPIView):
         drf_filters.SearchFilter,
         galaxy_filters.OrderByBackend,
     )
+    schema = ImportTaskListViewSchema()
 
     def get_queryset(self):
         qs = models.ImportTask.objects.select_related(
@@ -347,8 +361,8 @@ class ImportTaskList(base_views.ListCreateAPIView):
 
     def get_serializer_class(self):
         # NOTE(cutwater): This is for compatibility with ansible-galaxy client.
-        if 'id' in self.request.GET:
-            return serializers.ImportTaskDetailSerializer
+#        if 'id' in self.request.GET:
+#            return serializers.ImportTaskDetailSerializer
         return super().get_serializer_class()
 
     def list(self, request, *args, **kwargs):
@@ -371,6 +385,9 @@ class ImportTaskList(base_views.ListCreateAPIView):
 
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
+    def get(self, request, *args, **kwargs):
+        return Response({'foo': 'bar'})
 
     def post(self, request, *args, **kwargs):
         github_user = request.data.get('github_user')
