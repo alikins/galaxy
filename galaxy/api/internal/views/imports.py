@@ -21,7 +21,7 @@ from django.db.models import F, Value
 
 from galaxy.api import base
 from galaxy.api.internal.serializers.imports import (
-    TYPE_REPOSITORY, TYPE_COLLECTION, SERIALIZER_BY_TYPE
+    TYPE_REPOSITORY, TYPE_COLLECTION, SERIALIZER_BY_TYPE, CollectionImportTaskItem
 )
 from galaxy.main import models
 
@@ -113,6 +113,9 @@ class NamespaceImportsList(base.ListAPIView):
             pk = record['pk']
             tp = record['type']
             record['object'] = loaded[tp][pk]
+
+    def get_serializer_class(self):
+        return CollectionImportTaskItem
 
     def serialize_objects(self, records):
         for record in records:
